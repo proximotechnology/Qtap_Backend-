@@ -8,6 +8,9 @@ use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\QtapAffiliateController;
 use App\Http\Controllers\CampaignsController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\homeController;
+use App\Http\Controllers\PricingController;
+use App\Http\Controllers\FeedbackController;
 
 
 /*
@@ -24,10 +27,20 @@ use App\Http\Controllers\SettingsController;
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
 
+Route::get('home', [homeController::class, 'index']);
+
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+
+
+Route::middleware('admin_or_client')->group(function () {
+    Route::resource('feedback', FeedbackController::class);
+});
+
+
 
 
 Route::middleware('auth:qtap_admins')->group(function () {
@@ -39,6 +52,8 @@ Route::middleware('auth:qtap_admins')->group(function () {
     Route::resource('qtap_admins', QtapAdminsController::class);
     Route::resource('products', ProductsController::class);
     Route::resource('campaigns', CampaignsController::class);
+    Route::resource('pricing', PricingController::class);
+
 
 
 
@@ -48,7 +63,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
         Route::get('content', [SettingsController::class, 'getSettingContent']);
         Route::delete('content/{id}', [SettingsController::class, 'deleteSettingContent']);
 
-        
+
 
         Route::post('faq', [SettingsController::class, 'createSettingFaq']);
         Route::post('faq/{id}', [SettingsController::class, 'updateSettingFaq']);
@@ -75,8 +90,12 @@ Route::middleware('auth:qtap_admins')->group(function () {
         Route::get('videos', [SettingsController::class, 'getSettingVideos']);
         Route::delete('videos/{id}', [SettingsController::class, 'deleteSettingVideos']);
     });
-
 });
+
+
+
+
+
 
 
 Route::middleware('auth:qtap_clients')->group(function () {
