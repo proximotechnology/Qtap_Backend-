@@ -11,6 +11,8 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\homeController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\NoteController;
+use App\Http\Controllers\TicketSupportController;
 
 
 /*
@@ -38,12 +40,15 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::middleware('admin_or_client')->group(function () {
     Route::resource('feedback', FeedbackController::class);
+    Route::resource('ticket', TicketSupportController::class);
 });
 
 
 
 
 Route::middleware('auth:qtap_admins')->group(function () {
+
+
 
 
     Route::post('add_qtap_affiliate', [QtapAffiliateController::class, 'store']);
@@ -53,6 +58,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
     Route::resource('products', ProductsController::class);
     Route::resource('campaigns', CampaignsController::class);
     Route::resource('pricing', PricingController::class);
+    Route::resource('note', NoteController::class);
 
 
 
