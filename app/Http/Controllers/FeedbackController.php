@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Feedback;
+use App\Models\feedback;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
@@ -11,8 +11,16 @@ class FeedbackController extends Controller
     public function index()
     {
         try {
-            $feedbacks = Feedback::all();
-            return response()->json($feedbacks);
+
+            $feedbacks = Feedback::with('client')->get();
+
+            if ($feedbacks) {
+
+                return response()->json($feedbacks);
+            } else {
+
+                return response()->json(['error' => 'Feedbacks not found.'], 404);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => 'An error occurred while fetching feedbacks.'], 500);
         }
@@ -40,22 +48,31 @@ class FeedbackController extends Controller
         }
     }
 
-    public function update(Request $request, Feedback $feedback)
+    public function update(Request $request, $id)
     {
         try {
-            $request->validate([
-                'client_id' => 'nullable|integer',
-                'star' => 'nullable|integer|min:1|max:5',
-                'emoji' => 'nullable|in:very happy,happy,said',
-                'your_goals' => 'nullable|in:yes,no',
-                'publish' => 'nullable|in:yes,no',
-                'missing_Q-tap_Menus' => 'nullable|string',
-                'comment' => 'nullable|string',
-            ]);
 
-            $feedback->update($request->all());
 
-            return response()->json($feedback);
+            $feedback = feedback::find($id);
+
+            if ($feedback) {
+                # code...
+                $request->validate([
+                    'client_id' => 'nullable|integer',
+                    'star' => 'nullable|integer|min:1|max:5',
+                    'emoji' => 'nullable|in:very happy,happy,said',
+                    'your_goals' => 'nullable|in:yes,no',
+                    'publish' => 'nullable|in:yes,no',
+                    'missing_Q-tap_Menus' => 'nullable|string',
+                    'comment' => 'nullable|string',
+                ]);
+
+                $feedback->update($request->all());
+
+                return response()->json($feedback);
+            } else {
+                return response()->json(['error' => 'Feedback not found.'], 404);
+            }
         } catch (ModelNotFoundException $e) {
             return response()->json(['error' => 'Feedback not found.'], 404);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -65,12 +82,21 @@ class FeedbackController extends Controller
         }
     }
 
-    public function destroy(Feedback $feedback)
+    public function destroy( $id)
     {
         try {
-            $feedback->delete();
 
-            return response()->json(['message' => 'Feedback deleted successfully'], 200);
+
+            $feedback = feedback::find($id);
+
+
+            if ($feedback) {
+                $feedback->delete();
+                return response()->json(['message' => 'Feedback deleted successfully'], 200);
+            } else {
+
+                return response()->json(['error' => 'Feedback not found.'], 404);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => 'An error occurred while deleting the feedback.'], 500);
         }

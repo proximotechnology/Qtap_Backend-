@@ -16,63 +16,110 @@ class SettingsController extends Controller
     {
         try {
             $data = $request->validate([
-                'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'titles' => 'required|string',
-                'descriptions' => 'required|string',
-                'features' => 'required|string',
+                'img' => 'nullable|array',
+                'img.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+                'titles' => 'required|array',
+                'descriptions' => 'required|array',
+                'features' => 'required|array',
             ]);
 
-            // Handle image upload
+            $imagePaths = [];
             if ($request->hasFile('img')) {
-                $image = $request->file('img');
-                $imagePath = $image->store('images/Content', 'public'); // Store in public/images
-                $data['img'] = $imagePath;
+                foreach ($request->file('img') as $image) {
+                    $imagePath = $image->store('images/Content', 'public');
+                    $imagePaths[] = 'public/storage/' . $imagePath;
+                }
             }
 
+            $data['img'] = json_encode($imagePaths);
+            $data['titles'] = json_encode($data['titles']);
+            $data['descriptions'] = json_encode($data['descriptions']);
+            $data['features'] = json_encode($data['features']);
+
+            // If the user has uploaded images, store them in the public folder
             $setting = setting_content::create($data);
+
             return response()->json($setting, 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
     }
 
+    // Encode the image paths and other fields as JSON
+
+
     public function updateSettingContent(Request $request, $id)
     {
         try {
-            $data = $request->validate([
-                'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'titles' => 'nullable|string',
-                'descriptions' => 'nullable|string',
-                'features' => 'nullable|string',
-            ]);
+            // Create a new setting content
 
+
+            // Return the new setting content as JSON
             $setting = setting_content::findOrFail($id);
 
-            // Handle image upload if file is present
-            if ($request->hasFile('img')) {
-                // Delete old image if it exists
-                if ($setting->img && file_exists(storage_path('app/public/' . $setting->img))) {
-                    unlink(storage_path('app/public/' . $setting->img));
+            // If there's an error, return it as JSON
+            if ($setting) {
+                # code...
+                $data = $request->validate([
+                    'img' => 'nullable|array',
+                    'img.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+                    'titles' => 'nullable|array',
+                    'descriptions' => 'nullable|array',
+                    'features' => 'nullable|array',
+                ]);
+
+
+
+                $imagePaths = json_decode($setting->img, true) ?? [];
+                if ($request->hasFile('img')) {
+                    foreach ($imagePaths as $oldImagePath) {
+                        if (file_exists(storage_path('app/public/' . $oldImagePath))) {
+                            unlink(storage_path('app/public/' . $oldImagePath));
+                        }
+                    }
+
+                    $imagePaths = [];
+                    foreach ($request->file('img') as $image) {
+                        $imagePath = $image->store('images/Content', 'public');
+                        $imagePaths[] = 'public/storage/' .  $imagePath;
+                    }
                 }
 
-                // Upload the new image
-                $image = $request->file('img');
-                $imagePath = $image->store('images/Content', 'public');
-                $data['img'] = $imagePath;
+                $data['img'] = json_encode($imagePaths);
+                if (isset($data['titles'])) {
+                    $data['titles'] = json_encode($data['titles']);
+                }
+                if (isset($data['descriptions'])) {
+                    $data['descriptions'] = json_encode($data['descriptions']);
+                }
+                if (isset($data['features'])) {
+                    $data['features'] = json_encode($data['features']);
+                }
+
+                $setting->update($data);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
             }
 
-            $setting->update($data);
+
+
             return response()->json($setting);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
 
     public function getSettingContent()
     {
         try {
             $settings = setting_content::all();
-            return response()->json($settings);
+
+            if ($settings) {
+                return response()->json($settings);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -82,12 +129,19 @@ class SettingsController extends Controller
     {
         try {
             $setting = setting_content::findOrFail($id);
-            // Delete image if exists
-            if ($setting->img && file_exists(storage_path('app/public/' . $setting->img))) {
-                unlink(storage_path('app/public/' . $setting->img));
+
+
+            if ($setting) {
+                # code...
+                // Delete image if exists
+                if ($setting->img && file_exists(storage_path('app/public/' . $setting->img))) {
+                    unlink(storage_path('app/public/' . $setting->img));
+                }
+                $setting->delete();
+                return response()->json(['message' => 'Deleted successfully']);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
             }
-            $setting->delete();
-            return response()->json(['message' => 'Deleted successfully']);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -97,28 +151,71 @@ class SettingsController extends Controller
     {
         try {
             $data = $request->validate([
-                'question' => 'required|string',
-                'answer' => 'required|string',
+                'question' => 'required|array',
+                'answer' => 'required|array',
             ]);
 
-            $setting = setting_faq::create($data);
-            return response()->json($setting, 201);
+            if (count($data['question']) !== count($data['answer'])) {
+                return response()->json([
+                    'error' => 'The number of questions must match the number of answers.',
+                ], 422);
+            }
+
+            $data['question'] = json_encode($data['question']);
+            $data['answer'] = json_encode($data['answer']);
+
+
+
+
+            $Q =  setting_faq::create($data);
+
+            return response()->json([
+                'message' => 'FAQs created successfully',
+                'data' => $Q,
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'details' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'An error occurred',
+                'details' => $e->getMessage(),
+            ], 500);
         }
     }
+
 
     public function updateSettingFaq(Request $request, $id)
     {
         try {
-            $data = $request->validate([
-                'question' => 'nullable|string',
-                'answer' => 'nullable|string',
-            ]);
+
 
             $setting = setting_faq::findOrFail($id);
-            $setting->update($data);
-            return response()->json($setting);
+
+            if ($setting) {
+
+                $data = $request->validate([
+                    'question' => 'required|array',
+                    'answer' => 'required|array',
+                ]);
+
+                if (count($data['question']) !== count($data['answer'])) {
+                    return response()->json([
+                        'error' => 'The number of questions must match the number of answers.',
+                    ], 422);
+                }
+
+                $data['question'] = json_encode($data['question']);
+                $data['answer'] = json_encode($data['answer']);
+
+
+                $setting->update($data);
+                return response()->json($setting);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -128,7 +225,15 @@ class SettingsController extends Controller
     {
         try {
             $settings = setting_faq::all();
-            return response()->json($settings);
+
+            if ($settings) {
+                # code...
+
+
+                return response()->json($settings);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -138,8 +243,14 @@ class SettingsController extends Controller
     {
         try {
             $setting = setting_faq::findOrFail($id);
-            $setting->delete();
-            return response()->json(['message' => 'Deleted successfully']);
+
+            if ($setting) {
+                # code...
+                $setting->delete();
+                return response()->json(['message' => 'Deleted successfully']);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -149,18 +260,26 @@ class SettingsController extends Controller
     {
         try {
             $data = $request->validate([
-                'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'titles' => 'required|string',
-                'descriptions' => 'required|string',
-                'features' => 'required|string',
+                'img' => 'nullable|array',
+                'titles' => 'required|array',
+                'descriptions' => 'required|array',
+                'features' => 'required|array',
             ]);
 
-            // Handle image upload
+            $imagePaths = [];
             if ($request->hasFile('img')) {
-                $image = $request->file('img');
-                $imagePath = $image->store('images/Features', 'public'); // Store in public/images
-                $data['img'] = $imagePath;
+                foreach ($request->file('img') as $image) {
+                    $imagePath = $image->store('images/Content', 'public');
+                    $imagePaths[] =  'public/storage/' . $imagePath;
+                }
             }
+
+            $data['img'] = json_encode($imagePaths);
+
+
+            $data['titles'] = json_encode($data['titles']);
+            $data['descriptions'] = json_encode($data['descriptions']);
+            $data['features'] = json_encode($data['features']);
 
             $setting = setting_features::create($data);
             return response()->json($setting, 201);
@@ -172,30 +291,38 @@ class SettingsController extends Controller
     public function updateSettingFeatures(Request $request, $id)
     {
         try {
-            $data = $request->validate([
-                'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'titles' => 'nullable|string',
-                'descriptions' => 'nullable|string',
-                'features' => 'nullable|string',
-            ]);
 
-            $setting = setting_features::findOrFail($id);
+            $setting = setting_features::find($id);
 
-            // Handle image upload if file is present
-            if ($request->hasFile('img')) {
-                // Delete old image if it exists
-                if ($setting->img && file_exists(storage_path('app/public/' . $setting->img))) {
-                    unlink(storage_path('app/public/' . $setting->img));
+
+            if ($setting) {
+                $data = $request->validate([
+                    'img' => 'nullable|array',
+                    'titles' => 'required|array',
+                    'descriptions' => 'required|array',
+                    'features' => 'required|array',
+                ]);
+
+                $imagePaths = [];
+                if ($request->hasFile('img')) {
+                    foreach ($request->file('img') as $image) {
+                        $imagePath = $image->store('images/Content', 'public');
+                        $imagePaths[] =  'public/storage/' .  $imagePath;
+                    }
                 }
 
-                // Upload the new image
-                $image = $request->file('img');
-                $imagePath = $image->store('images/Features', 'public');
-                $data['img'] = $imagePath;
-            }
+                $data['img'] = json_encode($imagePaths);
 
-            $setting->update($data);
-            return response()->json($setting);
+
+                $data['titles'] = json_encode($data['titles']);
+                $data['descriptions'] = json_encode($data['descriptions']);
+                $data['features'] = json_encode($data['features']);
+
+                $setting->update($data);
+                return response()->json($setting);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -205,7 +332,13 @@ class SettingsController extends Controller
     {
         try {
             $settings = setting_features::all();
-            return response()->json($settings);
+
+            if ($settings) {
+                return response()->json($settings);
+                # code...
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -215,11 +348,19 @@ class SettingsController extends Controller
     {
         try {
             $setting = setting_features::findOrFail($id);
-            // Delete image if exists
-            if ($setting->img && file_exists(storage_path('app/public/' . $setting->img))) {
-                unlink(storage_path('app/public/' . $setting->img));
+
+            if ($setting) {
+                # code...
+
+                // Delete image if exists
+                if ($setting->img && file_exists(storage_path('app/public/' . $setting->img))) {
+                    unlink(storage_path('app/public/' . $setting->img));
+                }
+                $setting->delete();
+            } else {
+                return response()->json(['error' => 'Setting not found']);
             }
-            $setting->delete();
+
             return response()->json(['message' => 'Deleted successfully']);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
@@ -230,48 +371,65 @@ class SettingsController extends Controller
     {
         try {
             $data = $request->validate([
-                'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'title' => 'required|string',
+                'img' => 'required|array',
+                'title' => 'nullable|array',
             ]);
 
-            // Handle image upload
+            $imagePaths = [];
             if ($request->hasFile('img')) {
-                $image = $request->file('img');
-                $imagePath = $image->store('images/OurClients', 'public'); // Store in public/images
-                $data['img'] = $imagePath;
+                foreach ($request->file('img') as $image) {
+                    $imagePath = $image->store('images/Content', 'public');
+                    $imagePaths[] =  'public/storage/' .  $imagePath;
+                }
+            }
+
+            $data['img'] = json_encode($imagePaths);
+
+            if (isset($data['title'])) {
+                $data['title'] = json_encode($data['title']);
             }
 
             $setting = setting_our_clients::create($data);
+
             return response()->json($setting, 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
 
     public function updateSettingOurClients(Request $request, $id)
     {
         try {
-            $data = $request->validate([
-                'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'title' => 'nullable|string',
-            ]);
 
             $setting = setting_our_clients::findOrFail($id);
 
-            // Handle image upload if file is present
-            if ($request->hasFile('img')) {
-                // Delete old image if it exists
-                if ($setting->img && file_exists(storage_path('app/public/' . $setting->img))) {
-                    unlink(storage_path('app/public/' . $setting->img));
+
+            if ($setting) {
+
+                $data = $request->validate([
+                    'img' => 'required|array',
+                    'title' => 'nullable|array',
+                ]);
+
+                $imagePaths = [];
+                if ($request->hasFile('img')) {
+                    foreach ($request->file('img') as $image) {
+                        $imagePath = $image->store('images/Content', 'public');
+                        $imagePaths[] =  'public/storage/' .  $imagePath;
+                    }
                 }
 
-                // Upload the new image
-                $image = $request->file('img');
-                $imagePath = $image->store('images/OurClients', 'public');
-                $data['img'] = $imagePath;
+                $data['img'] = json_encode($imagePaths);
+
+
+                $data['title'] = json_encode($data['title']);
+
+                $setting->update($data);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
             }
 
-            $setting->update($data);
             return response()->json($setting);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
@@ -282,7 +440,14 @@ class SettingsController extends Controller
     {
         try {
             $settings = setting_our_clients::all();
-            return response()->json($settings);
+
+
+            if ($settings) {
+                # code...
+                return response()->json($settings);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -292,12 +457,18 @@ class SettingsController extends Controller
     {
         try {
             $setting = setting_our_clients::findOrFail($id);
-            // Delete image if exists
-            if ($setting->img && file_exists(storage_path('app/public/' . $setting->img))) {
-                unlink(storage_path('app/public/' . $setting->img));
+
+            if ($setting) {
+                # code...
+                // Delete image if exists
+                if ($setting->img && file_exists(storage_path('app/public/' . $setting->img))) {
+                    unlink(storage_path('app/public/' . $setting->img));
+                }
+                $setting->delete();
+                return response()->json(['message' => 'Deleted successfully']);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
             }
-            $setting->delete();
-            return response()->json(['message' => 'Deleted successfully']);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -323,16 +494,23 @@ class SettingsController extends Controller
     public function updateSettingPayment(Request $request, $id)
     {
         try {
-            $data = $request->validate([
-                'API_KEY' => 'nullable|string',
-                'Token1' => 'nullable|string',
-                'Token2' => 'nullable|string',
-                'Ifram' => 'nullable|string',
-            ]);
 
             $setting = setting_payment::findOrFail($id);
-            $setting->update($data);
-            return response()->json($setting);
+
+            if ($setting) {
+                # code...
+                $data = $request->validate([
+                    'API_KEY' => 'nullable|string',
+                    'Token1' => 'nullable|string',
+                    'Token2' => 'nullable|string',
+                    'Ifram' => 'nullable|string',
+                ]);
+
+                $setting->update($data);
+                return response()->json($setting);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -342,7 +520,15 @@ class SettingsController extends Controller
     {
         try {
             $settings = setting_payment::all();
-            return response()->json($settings);
+
+
+
+            if ($settings) {
+                # code...
+                return response()->json($settings);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -351,9 +537,16 @@ class SettingsController extends Controller
     public function deleteSettingPayment($id)
     {
         try {
+
             $setting = setting_payment::findOrFail($id);
-            $setting->delete();
-            return response()->json(['message' => 'Deleted successfully']);
+
+            if ($setting) {
+                # code...
+                $setting->delete();
+                return response()->json(['message' => 'Deleted successfully']);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -362,11 +555,14 @@ class SettingsController extends Controller
     public function createSettingVideos(Request $request)
     {
         try {
+
+
             $data = $request->validate([
-                'video' => 'required|string',
+                'video' => 'required|string|max:255',
             ]);
 
             $setting = setting_videos::create($data);
+
             return response()->json($setting, 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
@@ -376,13 +572,21 @@ class SettingsController extends Controller
     public function updateSettingVideos(Request $request, $id)
     {
         try {
-            $data = $request->validate([
-                'video' => 'nullable|string',
-            ]);
-
             $setting = setting_videos::findOrFail($id);
-            $setting->update($data);
-            return response()->json($setting);
+
+
+            if ($setting) {
+
+                $data = $request->validate([
+                    'video' => 'nullable|string',
+                ]);
+
+                $setting->update($data);
+                return response()->json($setting);
+                # code...
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -392,7 +596,13 @@ class SettingsController extends Controller
     {
         try {
             $settings = setting_videos::all();
-            return response()->json($settings);
+
+            if ($settings) {
+                # code...
+                return response()->json($settings);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }
@@ -402,8 +612,16 @@ class SettingsController extends Controller
     {
         try {
             $setting = setting_videos::findOrFail($id);
-            $setting->delete();
-            return response()->json(['message' => 'Deleted successfully']);
+
+            if ($setting) {
+                # code...
+
+
+                $setting->delete();
+                return response()->json(['message' => 'Deleted successfully']);
+            } else {
+                return response()->json(['error' => 'Setting not found']);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }

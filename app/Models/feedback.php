@@ -11,6 +11,12 @@ class feedback extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['client_id' , 'star', 'emoji', 'your_goals', 'missing_Q-tap_Menus', 'comment'] ;
+    protected $fillable = ['client_id' , 'star', 'emoji', 'your_goals', 'missing_Q-tap_Menus', 'comment' , 'publish'] ;
+    
+    
+        public function client()
+    {
+        return $this->belongsTo(qtap_clients::class , 'client_id' , 'id');
+    }
 
 }

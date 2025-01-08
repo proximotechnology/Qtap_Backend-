@@ -110,6 +110,7 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+         
         $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string',
@@ -132,7 +133,9 @@ class AuthController extends Controller
                 'action' => 'login',
             ]);
         } elseif ($token = Auth::guard('qtap_affiliate')->attempt($credentials)) {
+            
             $user = Auth::guard('qtap_affiliate')->user();
+           
             if ($user->status !== 'active') {
                 return response()->json(['error' => 'User is not active'], 401);
             }

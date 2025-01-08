@@ -13,6 +13,11 @@ use App\Http\Controllers\PricingController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\TicketSupportController;
+use App\Http\Controllers\WeServController;
+use App\Http\Controllers\QtapClientsController;
+use App\Http\Controllers\CustomerInfoController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\CurrencyController;
 
 
 /*
@@ -36,20 +41,46 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::resource('customer_info', CustomerInfoController::class);
+Route::resource('chat', ChatController::class);
 
 
 Route::middleware('admin_or_client')->group(function () {
     Route::resource('feedback', FeedbackController::class);
     Route::resource('ticket', TicketSupportController::class);
+
+    Route::post('qtap_clients/{id}', [QtapClientsController::class, 'update']);
+
+    Route::post('clients_update_profile/{id}', [QtapClientsController::class, 'update_profile']);
+    Route::post('clients_update_menu/{id}', [QtapClientsController::class, 'update_menu']);
+
+
+    Route::resource('currency', CurrencyController::class);
+});
+
+
+Route::middleware('admin_or_affiliate')->group(function () {
+    Route::post('qtap_affiliate/{id}', [QtapAffiliateController::class, 'update']);
 });
 
 
 
 
+Route::post('qtap_clients', [QtapClientsController::class, 'store']);
+
+
 Route::middleware('auth:qtap_admins')->group(function () {
 
 
+    // Route::get('qtap_clients', [QtapClientsController::class, 'index']);
+    Route::delete('qtap_clients/{id}', [QtapClientsController::class, 'destroy']);
 
+
+
+    Route::post('we_serv/{id}', [WeServController::class, 'update']);
+    Route::post('we_serv', [WeServController::class, 'store']);
+    Route::get('we_serv', [WeServController::class, 'index']);
+    Route::delete('we_serv/{id}', [WeServController::class, 'destroy']);
 
     Route::post('add_qtap_affiliate', [QtapAffiliateController::class, 'store']);
     Route::post('dashboard', [QtapAdminsController::class, 'dashboard'])->name('dashboard');
@@ -104,12 +135,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
 
 
-Route::middleware('auth:qtap_clients')->group(function () {
-
-});
+Route::middleware('auth:qtap_clients')->group(function () {});
 
 
-Route::middleware('auth:qtap_affiliate')->group(function () {
-
-    Route::post('qtap_affiliate/{id}', [QtapAffiliateController::class, 'update']);
-});
+Route::middleware('auth:qtap_affiliate')->group(function () {});

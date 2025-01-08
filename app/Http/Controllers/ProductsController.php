@@ -26,6 +26,7 @@ class ProductsController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'content' => 'nullable|string|max:255',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -40,10 +41,15 @@ class ProductsController extends Controller
             $image = $request->file('img');
             $imageName = time() . '_' . $image->getClientOriginalName();
             $imagePath = $image->storeAs('uploads/products', $imageName, 'public');
+
+            $imagePath = 'public/storage/' . $imagePath;
         }
+
+
 
         $product = Products::create([
             'name' => $request->input('name'),
+            'content' => $request->input('content'),
             'img' => $imagePath,
         ]);
 
@@ -58,6 +64,7 @@ class ProductsController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
+            'content' => 'nullable|string|max:255',
             'img' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -85,7 +92,7 @@ class ProductsController extends Controller
             $image = $request->file('img');
             $imageName = time() . '_' . $image->getClientOriginalName();
             $imagePath = $image->storeAs('uploads/products', $imageName, 'public');
-            $products->img = $imagePath;
+            $products->img = 'public/storage/' . $imagePath;
         }
 
         $products->save();

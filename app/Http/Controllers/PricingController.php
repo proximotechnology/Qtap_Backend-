@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pricing;
+use App\Models\pricing;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 

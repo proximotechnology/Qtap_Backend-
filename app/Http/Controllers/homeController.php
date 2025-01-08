@@ -21,7 +21,7 @@ class homeController extends Controller
         $clients = setting_our_clients::all();
         $videos = setting_videos::all();
         $pricing = pricing::where('is_active', 'active')->get();
-        $feedback = feedback::where('publish', 'yes')->get();
+        $feedback = feedback::with('client')->where('publish', 'yes')->get();
 
        return response([
            'features' => $features,

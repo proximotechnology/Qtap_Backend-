@@ -97,7 +97,8 @@ class QtapAffiliateController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $qtap_affiliate = qtap_affiliate::find($id);;
+          
+            $qtap_affiliate = qtap_affiliate::find($id);
 
             // التحقق من البيانات المدخلة
             $request->validate([
@@ -105,6 +106,7 @@ class QtapAffiliateController extends Controller
                 'country' => 'nullable|string|max:255',
                 'mobile' => 'nullable|string|max:255',
                 'birth_date' => 'nullable|date',
+                'status' => 'nullable|in:active,inactive',
                 'email' => 'nullable|string|email|max:255',
                 'password' => 'nullable|string|min:1',
                 'user_type' => 'nullable|in:qtap_affiliates',
@@ -117,15 +119,7 @@ class QtapAffiliateController extends Controller
             }
 
             // تحديث بيانات المستخدم
-            $qtap_affiliate->update($request->only([
-                'name',
-                'country',
-                'mobile',
-                'birth_date',
-                'email',
-                'password',
-                'user_type'
-            ]));
+            $qtap_affiliate->update($request->all());
 
             // تحديث أو إنشاء بيانات طرق الدفع
             $paymentData = $request->only([
