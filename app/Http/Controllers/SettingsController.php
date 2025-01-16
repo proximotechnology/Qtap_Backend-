@@ -557,13 +557,22 @@ class SettingsController extends Controller
         try {
 
 
-            $data = $request->validate([
-                'video' => 'required|string|max:255',
+                   $data = $request->validate([
+                'video' => 'required|array|max:255',
             ]);
 
-            $setting = setting_videos::create($data);
+                     $settings = []; // استخدمنا array بدلاً من سلسلة نصية
+                foreach ($data['video'] as $video) {
+                    $data['video'] = json_encode($video);
 
-            return response()->json($setting, 201);
+                    // إنشاء عنصر جديد وإضافته إلى المصفوفة
+                    $settings[] = setting_videos::create($data);
+                }
+
+
+
+
+            return response()->json($settings, 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()]);
         }

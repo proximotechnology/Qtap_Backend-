@@ -180,8 +180,29 @@ class QtapAffiliateController extends Controller
 
 
 
-    public function destroy(qtap_affiliate $qtap_affiliate)
+    public function destroy($id)
     {
-        //
+        try {
+            $qtap_affiliate = qtap_affiliate::find($id);
+
+            if (!$qtap_affiliate) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'البيانات غير موجودة.',
+                ], 404);
+            }
+            $qtap_affiliate->delete();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'تم حذف البيانات بنجاح.',
+            ], 200);
+        } catch (\Exception $e) {
+            // في حالة حدوث أي خطأ آخر، نعرض رسالة الخطاء بالتفصيل
+            return response()->json([
+                'status' => 'error',
+                'message' => 'حدث خطاء اثناء حذف البيانات.',
+                'error_details' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

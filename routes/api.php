@@ -80,6 +80,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
     //-------------affiliate--------
 
     Route::get('affiliate', [QtapAffiliateController::class, 'index']);
+    Route::delete('affiliate/{id}', [QtapAffiliateController::class, 'destroy']);
 
 
     //-------------clinet--------
