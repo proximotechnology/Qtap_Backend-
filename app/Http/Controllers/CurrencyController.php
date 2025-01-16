@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Currency;
+use App\Models\currency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class CurrencyController extends Controller
+class currencyController extends Controller
 {
     public function index()
     {
-        $currencies = Currency::all();
+        $currencies = currency::all();
         return response()->json([
             'success' => true,
             'currencies' => $currencies,
@@ -32,26 +32,26 @@ class CurrencyController extends Controller
             ], 422);
         }
 
-        $currency = Currency::create([
+        $currency = currency::create([
             'name' => $request->name,
             'symbol' => $request->symbol,
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Currency created successfully',
+            'message' => 'currency created successfully',
             'data' => $currency,
         ], 201);
     }
 
     public function update(Request $request, $id)
     {
-        $currency = Currency::find($id);
+        $currency = currency::find($id);
 
         if (!$currency) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Currency not found',
+                'message' => 'currency not found',
             ], 404);
         }
 
@@ -72,19 +72,19 @@ class CurrencyController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Currency updated successfully',
+            'message' => 'currency updated successfully',
             'data' => $currency,
         ], 200);
     }
 
     public function destroy($id)
     {
-        $currency = Currency::find($id);
+        $currency = currency::find($id);
 
         if (!$currency) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Currency not found',
+                'message' => 'currency not found',
             ], 404);
         }
 
@@ -92,7 +92,7 @@ class CurrencyController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Currency deleted successfully',
+            'message' => 'currency deleted successfully',
         ], 200);
     }
 }

@@ -15,7 +15,14 @@ class QtapAffiliateController extends Controller
 
     public function index()
     {
-        //
+        $affiliates_active = qtap_affiliate::where('status', 'active')->get();
+        $affiliates_inactive = qtap_affiliate::where('status', 'inactive')->get();
+
+        return response()->json([
+            'success' => true,
+            'affiliates_active' => $affiliates_active,
+            'affiliates_inactive' => $affiliates_inactive
+        ]);
     }
 
 
@@ -97,7 +104,7 @@ class QtapAffiliateController extends Controller
     public function update(Request $request, $id)
     {
         try {
-          
+
             $qtap_affiliate = qtap_affiliate::find($id);
 
             // التحقق من البيانات المدخلة

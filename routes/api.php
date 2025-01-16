@@ -79,6 +79,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
     //-------------affiliate--------
 
+    Route::get('affiliate', [QtapAffiliateController::class, 'index']);
 
 
     //-------------clinet--------
