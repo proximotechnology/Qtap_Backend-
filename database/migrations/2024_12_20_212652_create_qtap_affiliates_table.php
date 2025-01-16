@@ -22,7 +22,9 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('img')->nullable();
-            $table->foreign('campaigns')->references('id')->on('campaigns')->onDelete('set null');
+            $table->unsignedBigInteger('campaign_id')->nullable();
+            $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('set null');
+
             $table->softDeletes();
             $table->rememberToken();
             $table->timestamps();
