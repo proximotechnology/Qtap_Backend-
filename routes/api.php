@@ -104,6 +104,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
     Route::resource('campaigns', CampaignsController::class);
     Route::post('products/update/{products}', [ProductsController::class, 'update']);
     Route::post('dashboard', [QtapAdminsController::class, 'dashboard'])->name('dashboard');
+
     Route::prefix('settings')->group(function () {
         Route::post('content', [SettingsController::class, 'createSettingContent']);
         Route::post('content/{id}', [SettingsController::class, 'updateSettingContent']);
@@ -144,7 +145,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
     //-------------chat--------
     Route::resource('customer_info', CustomerInfoController::class);
 
-    // Route::get('qtap_clients', [QtapClientsController::class, 'index']);
+    Route::get('qtap_clients', [QtapClientsController::class, 'index']);
 
 
     //-------------admin--------

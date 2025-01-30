@@ -119,6 +119,8 @@ class QtapClientsController extends Controller
                 'email' => $validatedData['email'],
                 'password' => $validatedData['password'],
                 'user_type' => $validatedData['user_type'] ?? null,
+                'payment_method' => $branchData['payment_method'] ?? null,
+
             ]);
 
             // معالجة الفروع وإضافتها
@@ -141,7 +143,6 @@ class QtapClientsController extends Controller
                     'latitude' => $branchData['latitude'] ?? null,
                     'longitude' => $branchData['longitude'] ?? null,
                     'business_format' => $branchData['business_format'] ?? null,
-                    'payment_method' => $branchData['payment_method'] ?? null,
                     'menu_design' => $branchData['menu_design'] ?? null,
                     'default_mode' => $branchData['default_mode'] ?? null,
                     'payment_time' => $branchData['payment_time'] ?? null,

@@ -30,6 +30,7 @@ class homeController extends Controller
            'clients' => $clients,
            'pricing' => $pricing,
            'feedback' => $feedback,
+           'videos' => $videos,
        ]);
 
     }

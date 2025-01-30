@@ -21,7 +21,9 @@ return new class extends Migration
             $table->enum('status', ['active', 'inactive'])->default('inactive');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('user_type');
             $table->string('img')->nullable();
+            $table->enum('payment_method', ['cash', 'wallet']);
             $table->softDeletes();
             $table->rememberToken();
             $table->timestamps();

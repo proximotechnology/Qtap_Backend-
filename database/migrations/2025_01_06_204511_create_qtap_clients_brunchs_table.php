@@ -32,7 +32,6 @@ return new class extends Migration
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
             $table->enum('business_format', ['UL', 'UK']);
-            $table->enum('payment_method', ['cash', 'wallet']);
             $table->enum('menu_design', ['Grid', 'list']);
             $table->enum('default_mode', ['dark', 'white']);
             $table->enum('payment_time', ['before', 'after']);
