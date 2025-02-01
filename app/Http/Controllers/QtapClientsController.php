@@ -19,9 +19,22 @@ class QtapClientsController extends Controller
     public function index()
     {
         $qtap_clients = qtap_clients::all();
+
+        $clients_pricing = qtap_clients_brunchs::with('pricing')
+        ->get()
+        ->groupBy('pricing_id')
+        ->map(function ($group) {
+            return [
+                'pricing' => $group->first()->pricing->name,
+                'total_clients_brunchs' => $group->count()
+            ];
+        });
+        // dd($clients_pricing);
+
         return response()->json([
             'success' => true,
-            'qtap_clients' => $qtap_clients
+            'qtap_clients' => $qtap_clients,
+            'clients_pricing' => $clients_pricing
         ]);
     }
 

@@ -30,4 +30,9 @@ class qtap_clients_brunchs extends Model
         'call_waiter',
     ];
 
+
+    public function pricing(){
+        return $this->belongsTo(pricing::class , 'pricing_id' , 'id');
+    }
+
 }

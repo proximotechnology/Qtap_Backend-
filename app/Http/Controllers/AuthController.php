@@ -114,6 +114,7 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string',
+            'user_type' => 'required|string',
         ]);
 
         $credentials = $request->only('email', 'password' , 'user_type');
@@ -139,6 +140,8 @@ class AuthController extends Controller
             if ($user->status !== 'active') {
                 return response()->json(['error' => 'User is not active'], 401);
             }
+        }else {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         if ($user) {

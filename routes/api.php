@@ -20,6 +20,13 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TablesController;
+use App\Http\Controllers\MealsCategoriesController;
+use App\Http\Controllers\MealsController;
+use App\Http\Controllers\MealsDiscountController;
+use App\Http\Controllers\MealsExtraController;
+use App\Http\Controllers\MealsSizeController;
+use App\Http\Controllers\MealsSpecialOffersController;
+use App\Http\Controllers\MealsVariantsController;
 
 
 /*
@@ -162,6 +169,26 @@ Route::resource('chat', ChatController::class);
 
 //------------------CLIENT -------------------
 Route::middleware('auth:qtap_clients')->group(function () {
+
+
+
+
+
+    Route::resource('meals_categories', MealsCategoriesController::class);
+
+    Route::resource('meals_discount', MealsDiscountController::class);
+
+    Route::post('meals/{id}', [MealsController::class, 'update']);
+    Route::resource('meals', MealsController::class);
+
+    Route::resource('meals_size', MealsSizeController::class);
+    Route::resource('meals_special_offers', MealsSpecialOffersController::class);
+    Route::resource('meals_variants', MealsVariantsController::class);
+    Route::resource('meals_extra', MealsExtraController::class);
+
+
+
+
     Route::resource('payment', PaymentController::class);
     Route::resource('tables', TablesController::class);
 
