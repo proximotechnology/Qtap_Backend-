@@ -22,7 +22,7 @@ class MealsSpecialOffersController extends Controller
             'before_discount' => 'required|numeric',
             'after_discount' => 'required|numeric',
             'meals_id' => 'required|integer|exists:meals,id',
-            'brunch_id' => 'required|integer',
+                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {
@@ -54,7 +54,7 @@ class MealsSpecialOffersController extends Controller
             'before_discount' => 'required|numeric',
             'after_discount' => 'required|numeric',
             'meals_id' => 'required|integer|exists:meals,id',
-            'brunch_id' => 'required|integer',
+                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {

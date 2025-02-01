@@ -36,7 +36,7 @@ class MealsController extends Controller
             'price' => 'required|numeric',
             'discount_id' => 'nullable|integer',
             'categories_id' => 'required|integer',
-            'brunch_id' => 'required|integer',
+                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {
@@ -66,7 +66,7 @@ class MealsController extends Controller
     public function update(Request $request, $id)
     {
 
-        
+
         $meal = meals::find($id);
         if (!$meal) {
             return response()->json(['message' => 'Meal not found'], 404);
@@ -89,7 +89,7 @@ class MealsController extends Controller
             'price' => 'required|numeric',
             'discount_id' => 'nullable|integer',
             'categories_id' => 'required|integer',
-            'brunch_id' => 'required|integer',
+                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {

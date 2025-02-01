@@ -24,7 +24,7 @@ class MealsVariantsController extends Controller
 
             'price' => 'required|numeric|min:0',
             'meals_id' => 'required|integer|exists:meals,id',
-            'brunch_id' => 'required|integer',
+                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {
@@ -61,7 +61,7 @@ class MealsVariantsController extends Controller
             ],
             'price' => 'required|numeric|min:0',
             'meals_id' => 'required|integer|exists:meals,id',
-            'brunch_id' => 'required|integer',
+                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {

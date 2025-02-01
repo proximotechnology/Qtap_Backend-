@@ -22,7 +22,7 @@ class MealsExtraController extends Controller
             'name' => 'required|string|max:255|unique:meals_extras',
             'price' => 'required|numeric|min:0',
             'variants_id' => 'required|integer|exists:meals_variants,id',
-            'brunch_id' => 'required|integer',
+            'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {
@@ -53,7 +53,7 @@ class MealsExtraController extends Controller
             'name' => 'required|string|max:255|unique:meals_extras,name,' . $meal_extra->id,
             'price' => 'required|numeric|min:0',
             'variants_id' => 'required|integer|exists:meals_variants,id',
-            'brunch_id' => 'required|integer',
+                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {

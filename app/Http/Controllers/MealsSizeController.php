@@ -21,7 +21,7 @@ class MealsSizeController extends Controller
             'size' => 'required|string|in:s,m,l',
             'price' => 'required|numeric',
             'meals_id' => 'required|integer|exists:meals,id',  // Assuming 'meals' table exists
-            'brunch_id' => 'required|integer', // Assuming 'brunches' table exists
+                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id', // Assuming 'brunches' table exists
         ]);
 
         if ($validator->fails()) {
@@ -52,7 +52,7 @@ class MealsSizeController extends Controller
             'size' => 'required|string|in:s,m,l',
             'price' => 'required|numeric',
             'meals_id' => 'required|integer|exists:meals,id',
-            'brunch_id' => 'required|integer',
+              'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {

@@ -22,7 +22,7 @@ class MealsDiscountController extends Controller
             'code' => ['required', 'string', 'max:255', Rule::unique('meals_discounts', 'code')],
             'discount' => 'required|numeric|min:0|max:100',
             'status' => 'required|in:active,inactive',
-            'brunch_id' => 'required|integer'
+            'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {
@@ -52,7 +52,7 @@ class MealsDiscountController extends Controller
             ],
             'discount' => 'required|numeric|min:0|max:100',
             'status' => 'required|in:active,inactive',
-            'brunch_id' => 'required|integer'
+            'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {

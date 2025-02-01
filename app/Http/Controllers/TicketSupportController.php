@@ -23,7 +23,7 @@ class TicketSupportController extends Controller
         $validator = Validator::make($request->all(), [
             'Customer_Name' => 'required|string|max:255',
             'client_id' => 'required|integer',
-            'brunch_id' => 'required|integer',
+                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
             'Customer_Email' => 'required|email',
             'Customer_Phone' => 'required|string|max:15',
             'status' => 'nullable|in:open,in_progress,Done',
