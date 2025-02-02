@@ -23,7 +23,7 @@ class TicketSupportController extends Controller
         $validator = Validator::make($request->all(), [
             'Customer_Name' => 'required|string|max:255',
             'client_id' => 'required|integer',
-                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
+            'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
             'Customer_Email' => 'required|email',
             'Customer_Phone' => 'required|string|max:15',
             'status' => 'nullable|in:open,in_progress,Done',
@@ -47,7 +47,7 @@ class TicketSupportController extends Controller
 
         $ticketSupport = ticketSupport::find($id);
 
-        if(!$ticketSupport) {
+        if (!$ticketSupport) {
             return response()->json(['error' => 'التذكرة غير موجودة.'], 404);
         }
 
@@ -78,7 +78,7 @@ class TicketSupportController extends Controller
     public function destroy(ticketSupport $ticketSupport)
     {
         try {
-            $ticketSupport->delete();
+            $ticketSupport->forceDelete();
             return response()->json(['message' => 'تم حذف التذكرة بنجاح!']);
         } catch (\Exception $e) {
             return response()->json(['error' => 'حدث خطأ أثناء حذف التذكرة.'], 500);

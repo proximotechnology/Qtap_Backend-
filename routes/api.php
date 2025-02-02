@@ -27,6 +27,9 @@ use App\Http\Controllers\MealsExtraController;
 use App\Http\Controllers\MealsSizeController;
 use App\Http\Controllers\MealsSpecialOffersController;
 use App\Http\Controllers\MealsVariantsController;
+use App\Http\Controllers\RestaurantUsersController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RestaurantStaffController;
 
 
 /*
@@ -83,6 +86,13 @@ Route::middleware('admin_or_affiliate')->group(function () {
 Route::middleware('auth:qtap_admins')->group(function () {
 
 
+
+
+
+    //-------------chat--------
+    Route::get('customer_info', [CustomerInfoController::class, 'index']);
+    Route::put('customer_info/{id}', [CustomerInfoController::class, 'update']);
+    Route::delete('customer_info/{id}', [CustomerInfoController::class, 'delete']);
 
     //-------------affiliate--------
 
@@ -149,8 +159,6 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
 
 
-    //-------------chat--------
-    Route::resource('customer_info', CustomerInfoController::class);
 
     Route::get('qtap_clients', [QtapClientsController::class, 'index']);
 
@@ -161,16 +169,30 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
 
 
+
+
+
 //------------------------------------------------PUBLIC API------------------------------------------------------------
 
-//------------------chat---------------------
-Route::resource('chat', ChatController::class);
+//-------------chat--------
+Route::post('customer_info', [CustomerInfoController::class, 'store']);
 
 
 //------------------CLIENT -------------------
 Route::middleware('auth:qtap_clients')->group(function () {
 
 
+
+
+    //------------restaurant_staff-----
+    Route::resource('restaurant_staff', RestaurantStaffController::class);
+
+
+    //------------roles-----
+    Route::resource('roles', RoleController::class);
+
+    //------------users_staff-----
+    Route::resource('restaurant_users', RestaurantUsersController::class);
 
 
 

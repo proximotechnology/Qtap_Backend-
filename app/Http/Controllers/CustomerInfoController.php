@@ -35,6 +35,7 @@ class CustomerInfoController extends Controller
                 'address' => 'required|string|max:255',
             ]);
 
+
             $customer_data = customer_info::where('phone', $validatedData['phone'])->first();
 
             if ($customer_data) {
@@ -54,12 +55,6 @@ class CustomerInfoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Database error occurred.',
-                'error' => $e->getMessage()
-            ], 500);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'An unexpected error occurred.',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -87,12 +82,6 @@ class CustomerInfoController extends Controller
                 'message' => 'Database error occurred during update.',
                 'error' => $e->getMessage()
             ], 500);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'An unexpected error occurred during update.',
-                'error' => $e->getMessage()
-            ], 500);
         }
     }
 
@@ -108,12 +97,6 @@ class CustomerInfoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Database error occurred during deletion.',
-                'error' => $e->getMessage()
-            ], 500);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'An unexpected error occurred during deletion.',
                 'error' => $e->getMessage()
             ], 500);
         }
