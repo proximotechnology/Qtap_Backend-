@@ -175,6 +175,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
 //------------------------------------------------PUBLIC API------------------------------------------------------------
 
 //-------------chat--------
+Route::resource('chat', ChatController::class);
 Route::post('customer_info', [CustomerInfoController::class, 'store']);
 
 

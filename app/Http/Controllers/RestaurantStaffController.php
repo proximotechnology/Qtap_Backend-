@@ -59,7 +59,7 @@ class RestaurantStaffController extends Controller
             'user_id' => [
                 'required',
                 Rule::unique('restaurant_staffs', 'user_id')
-                    ->ignore($restaurant_staff->id) 
+                    ->ignore($restaurant_staff->id)
             ],
 
             'role' => 'required|string|exists:roles,name',

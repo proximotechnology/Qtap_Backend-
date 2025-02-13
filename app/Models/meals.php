@@ -22,5 +22,8 @@ class meals extends Model
         'discount_id',
         'categories_id',
         'brunch_id',
+        'price_small',
+        'price_medium',
+        'price_large',
     ];
 }

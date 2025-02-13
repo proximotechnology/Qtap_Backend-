@@ -21,8 +21,9 @@ class MealsDiscountController extends Controller
         $validator = Validator::make($request->all(), [
             'code' => ['required', 'string', 'max:255', Rule::unique('meals_discounts', 'code')],
             'discount' => 'required|numeric|min:0|max:100',
-            'status' => 'required|in:active,inactive',
+            'status' => 'nullable|in:active,inactive',
             'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
+            
         ]);
 
         if ($validator->fails()) {

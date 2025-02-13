@@ -24,7 +24,7 @@ class MealsCategoriesController extends Controller
             'name' => 'required|string|max:255|unique:meals_categories',
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'cover' => 'nullable|string',
+            'cover' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
@@ -63,7 +63,7 @@ class MealsCategoriesController extends Controller
 
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'cover' => 'nullable|string',
+            'cover' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 

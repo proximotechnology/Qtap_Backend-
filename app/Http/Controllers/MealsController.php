@@ -26,6 +26,9 @@ class MealsController extends Controller
                 'max:255',
                 Rule::unique('meals', 'name')
             ],
+            'price_small' => 'nullable|numeric',
+            'price_medium' => 'nullable|numeric',
+            'price_large' => 'nullable|numeric',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'Brief' => 'nullable|string',
             'Description' => 'nullable|string',
@@ -36,7 +39,7 @@ class MealsController extends Controller
             'price' => 'required|numeric',
             'discount_id' => 'nullable|integer',
             'categories_id' => 'required|integer',
-                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
+             'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {
@@ -79,6 +82,9 @@ class MealsController extends Controller
                 'max:255',
                 Rule::unique('meals', 'name')->ignore($meal->id)
             ],
+            'price_small' => 'nullable|numeric',
+            'price_medium' => 'nullable|numeric',
+            'price_large' => 'nullable|numeric',
             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'Brief' => 'nullable|string',
             'Description' => 'nullable|string',
@@ -89,7 +95,7 @@ class MealsController extends Controller
             'price' => 'required|numeric',
             'discount_id' => 'nullable|integer',
             'categories_id' => 'required|integer',
-                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
+            'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {

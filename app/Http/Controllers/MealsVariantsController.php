@@ -23,8 +23,8 @@ class MealsVariantsController extends Controller
             'name' => ['required', 'string', 'max:255', Rule::unique('meals_variants', 'name')],
 
             'price' => 'required|numeric|min:0',
-            'meals_id' => 'required|integer|exists:meals,id',
-                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
+            // 'meals_id' => 'required|integer|exists:meals,id',
+            'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {
@@ -60,8 +60,8 @@ class MealsVariantsController extends Controller
                 Rule::unique('meals_variants', 'name')->ignore($meal_variant->id)
             ],
             'price' => 'required|numeric|min:0',
-            'meals_id' => 'required|integer|exists:meals,id',
-                        'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
+            // 'meals_id' => 'required|integer|exists:meals,id',
+            'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
         ]);
 
         if ($validator->fails()) {
