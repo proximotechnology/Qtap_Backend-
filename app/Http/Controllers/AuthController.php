@@ -6,6 +6,7 @@ use App\Models\qtap_admins;
 use App\Models\qtap_affiliate;
 use App\Models\clients_logs;
 use App\Models\User;
+use App\Models\qtap_clients_brunchs;
 use App\Models\qtap_clients;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -121,9 +122,22 @@ class AuthController extends Controller
         $user = null;
 
         if ($token = Auth::guard('qtap_admins')->attempt($credentials)) {
+
             $user = Auth::guard('qtap_admins')->user();
+
+
+
+            if ($user) {
+                return response()->json([
+                    'token' => $token,
+                    'user' => $user,
+                ]);
+            }
         } elseif ($token = Auth::guard('qtap_clients')->attempt($credentials)) {
+
             $user = Auth::guard('qtap_clients')->user();
+            $brunches = qtap_clients_brunchs::where('client_id', $user->id)->get();
+
             if ($user->status !== 'active') {
                 return response()->json(['error' => 'User is not active'], 401);
             }
@@ -133,6 +147,15 @@ class AuthController extends Controller
                 'client_id' => $user->id,
                 'action' => 'login',
             ]);
+
+
+            if ($user) {
+                return response()->json([
+                    'token' => $token,
+                    'user' => $user,
+                    'brunches' => $brunches,
+                ]);
+            }
         } elseif ($token = Auth::guard('qtap_affiliate')->attempt($credentials)) {
 
             $user = Auth::guard('qtap_affiliate')->user();
@@ -140,16 +163,19 @@ class AuthController extends Controller
             if ($user->status !== 'active') {
                 return response()->json(['error' => 'User is not active'], 401);
             }
+
+
+            if ($user) {
+                return response()->json([
+                    'token' => $token,
+                    'user' => $user,
+                ]);
+            }
         }else {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        if ($user) {
-            return response()->json([
-                'token' => $token,
-                'user' => $user,
-            ]);
-        }
+
 
         return response()->json(['error' => 'Unauthorized'], 401);
     }
