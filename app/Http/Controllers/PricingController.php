@@ -11,12 +11,18 @@ class PricingController extends Controller
     public function index()
     {
         try {
+
             $pricings = Pricing::all();
-            return response()->json($pricings);
+            return response()->json([
+                'success' => true,
+                'data' => $pricings
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Something went wrong while fetching data'], 500);
+            return response()->json(['error' => 'Something went wrong while fetching data' . $e], 500);
         }
     }
+
+
 
     public function store(Request $request)
     {
@@ -24,7 +30,7 @@ class PricingController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'description' => 'required|string',
-                'specific_number' => 'required|integer',
+                'orders_limit' => 'required|integer',
                 'feature' => 'required|array',
                 'monthly_price' => 'required|numeric',
                 'yearly_price' => 'required|numeric',
@@ -41,15 +47,17 @@ class PricingController extends Controller
         } catch (QueryException $e) {
             return response()->json(['error' => 'Database error: ' . $e->getMessage()], 500);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Something went wrong while saving data'], 500);
+            return response()->json(['error' => 'Something went wrong while saving data' . $e], 500);
         }
     }
 
 
 
-    public function update(Request $request, Pricing $pricing)
+    public function update(Request $request, $id)
     {
         try {
+
+            $pricing = Pricing::find($id);
             if (!$pricing) {
                 return response()->json(['error' => 'Pricing not found'], 404);
             }
@@ -57,7 +65,7 @@ class PricingController extends Controller
             $request->validate([
                 'name' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
-                'specific_number' => 'nullable|integer',
+                'orders_limit' => 'nullable|integer',
                 'feature' => 'nullable|array',
                 'monthly_price' => 'nullable|numeric',
                 'yearly_price' => 'nullable|numeric',
@@ -70,13 +78,15 @@ class PricingController extends Controller
         } catch (QueryException $e) {
             return response()->json(['error' => 'Database error: ' . $e->getMessage()], 500);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Something went wrong while updating data'], 500);
+            return response()->json(['error' => 'Something went wrong while updating data' . $e], 500);
         }
     }
 
-    public function destroy(Pricing $pricing)
+    public function destroy($id)
     {
         try {
+
+            $pricing = Pricing::find($id);
             if (!$pricing) {
                 return response()->json(['error' => 'Pricing not found'], 404);
             }
@@ -84,7 +94,7 @@ class PricingController extends Controller
             $pricing->delete();
             return response()->json(null, 204);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Something went wrong while deleting data'], 500);
+            return response()->json(['error' => 'Something went wrong while deleting data' . $e], 500);
         }
     }
 }

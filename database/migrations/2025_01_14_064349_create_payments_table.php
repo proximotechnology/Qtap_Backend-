@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('brunch_id')->referances('id')->on('qtap_clients_brunchs')->onDelete('cascade');
-            $table->string('API_KEY');
-            $table->string('Token1');
-            $table->string('Token2');
-            $table->string('Ifram');
+            $table->unsignedBigInteger('brunch_id')->nullable();
+            $table->foreign('brunch_id')->references('id')->on('qtap_clients_brunchs')->onDelete('cascade');
+            $table->text('API_KEY');
+            $table->text('IFRAME_ID');
+            $table->text('INTEGRATION_ID');
+            $table->text('HMAC');
             $table->timestamps();
         });
     }

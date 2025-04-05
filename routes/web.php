@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PaymobController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -18,5 +19,19 @@ Route::get('/', function () {
 
 
 
+Route::get('thankyou', function () {
+    return view('thankyou');
+})->name('thankyou');
+
+// Route::get('/' , [CheckOutController::class, 'index']);
+
+
+Route::get('getcallback' , [PaymobController::class, 'getcallback'])->name('getcallback');
+
+
+
+//Paymob Routes
+Route::post('/credit', [PaymobController::class, 'credit'])->name('checkout'); // this route send all functions data to paymob
+Route::get('/callback', [PaymobController::class, 'callback'])->name('callback'); // this route get all reponse data to paymob
 
 

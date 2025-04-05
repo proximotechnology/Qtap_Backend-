@@ -23,12 +23,14 @@ class PaymentController extends Controller
     {
         try {
 
+            dd($request->all());
+
             $data = $request->validate([
                 'API_KEY' => 'required|string',
-                'Token1' => 'required|string',
-                'Token2' => 'required|string',
-                'Ifram' => 'required|string',
-                'brunch_id' => 'required|integer|max:255',
+                'IFRAME_ID' => 'required|string',
+                'INTEGRATION_ID' => 'required|string',
+                'HMAC' => 'required|string',
+                'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
             ]);
 
 
@@ -68,10 +70,10 @@ class PaymentController extends Controller
 
             $data = $request->validate([
                 'API_KEY' => 'required|string',
-                'Token1' => 'required|string',
-                'Token2' => 'required|string',
-                'Ifram' => 'required|string',
-                'brunch_id' => 'required|integer|max:255',
+                'IFRAME_ID' => 'required|string',
+                'INTEGRATION_ID' => 'required|string',
+                'HMAC' => 'required|string',
+                'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
             ]);
 
             $brunch_id = qtap_clients_brunchs::find($data['brunch_id']);

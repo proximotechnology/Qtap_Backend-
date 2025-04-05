@@ -11,13 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('setting_payments', function (Blueprint $table) {
+        Schema::create('revenues', function (Blueprint $table) {
             $table->id();
-            $table->text('API_KEY');
-            $table->text('IFRAME_ID');
-            $table->text('INTEGRATION_ID');
-            $table->text('HMAC');
-            $table->softDeletes();
+
+            $table->unsignedBigInteger('client_id');
+            $table->foreign('client_id')->references('id')->on('qtap_clients')->onDelete('cascade');
+
+            $table->string('value')->default(0);
+            
+            $table->string('order_id');
+
+
             $table->timestamps();
         });
     }
@@ -27,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('setting_payments');
+        Schema::dropIfExists('revenues');
     }
 };

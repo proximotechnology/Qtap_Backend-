@@ -10,6 +10,8 @@ use App\Models\setting_payment;
 use App\Models\setting_videos;
 use Illuminate\Http\Request;
 
+use Illuminate\Support\Facades\Validator;
+
 class SettingsController extends Controller
 {
     public function createSettingContent(Request $request)
@@ -477,19 +479,36 @@ class SettingsController extends Controller
     public function createSettingPayment(Request $request)
     {
         try {
-            $data = $request->validate([
+            $data = $request->all();
+
+            $validator = Validator::make($data, [
                 'API_KEY' => 'required|string',
-                'Token1' => 'required|string',
-                'Token2' => 'required|string',
-                'Ifram' => 'required|string',
+                'IFRAME_ID' => 'required|string',
+                'INTEGRATION_ID' => 'required|string',
+                'HMAC' => 'required|string',
             ]);
 
+            if ($validator->fails()) {
+                return response()->json($validator->errors(), 422);
+            }
+
+            // حذف جميع السجلات السابقة
+            setting_payment::query()->delete();
+
+            // إنشاء سجل جديد
             $setting = setting_payment::create($data);
+
+            setting_payment::onlyTrashed()->forceDelete();
+
             return response()->json($setting, 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
+            // استعادة أي سجلات محذوفة عند حدوث خطأ
+            setting_payment::onlyTrashed()->restore();
+
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
 
     public function updateSettingPayment(Request $request, $id)
     {
@@ -500,10 +519,10 @@ class SettingsController extends Controller
             if ($setting) {
                 # code...
                 $data = $request->validate([
-                    'API_KEY' => 'nullable|string',
-                    'Token1' => 'nullable|string',
-                    'Token2' => 'nullable|string',
-                    'Ifram' => 'nullable|string',
+                    'API_KEY' => 'required|string',
+                    'IFRAME_ID' => 'required|string',
+                    'INTEGRATION_ID' => 'required|string',
+                    'HMAC' => 'required|string',
                 ]);
 
                 $setting->update($data);
@@ -520,9 +539,6 @@ class SettingsController extends Controller
     {
         try {
             $settings = setting_payment::all();
-
-
-
             if ($settings) {
                 # code...
                 return response()->json($settings);
@@ -557,17 +573,17 @@ class SettingsController extends Controller
         try {
 
 
-                   $data = $request->validate([
+            $data = $request->validate([
                 'video' => 'required|array|max:255',
             ]);
 
-                     $settings = []; // استخدمنا array بدلاً من سلسلة نصية
-                foreach ($data['video'] as $video) {
-                    $data['video'] = json_encode($video);
+            $settings = []; // استخدمنا array بدلاً من سلسلة نصية
+            foreach ($data['video'] as $video) {
+                $data['video'] = json_encode($video);
 
-                    // إنشاء عنصر جديد وإضافته إلى المصفوفة
-                    $settings[] = setting_videos::create($data);
-                }
+                // إنشاء عنصر جديد وإضافته إلى المصفوفة
+                $settings[] = setting_videos::create($data);
+            }
 
 
 

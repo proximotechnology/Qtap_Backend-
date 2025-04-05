@@ -28,11 +28,31 @@ class qtap_clients_brunchs extends Model
         'default_mode',
         'payment_time',
         'call_waiter',
+        'status',
+        'order_id',
     ];
 
 
     public function pricing(){
         return $this->belongsTo(pricing::class , 'pricing_id' , 'id');
+    }
+
+
+    public function workschedule(){
+
+        return $this->hasMany(workschedule::class, 'brunch_id');
+    }
+    public function contact_info(){
+
+        return $this->hasMany(contact_info::class, 'brunch_id');
+    }
+    public function serving_ways(){
+
+        return $this->hasMany(serving_ways::class, 'brunch_id');
+    }
+    public function payment_services(){
+
+        return $this->hasMany(payment_services::class, 'brunch_id');
     }
 
 }

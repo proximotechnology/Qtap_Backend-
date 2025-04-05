@@ -6,6 +6,7 @@ use App\Models\qtap_clients;
 use App\Models\qtap_clients_brunchs;
 use App\Models\payment_services;
 use App\Models\contact_info;
+use App\Models\pricing;
 use App\Models\serving_ways;
 use App\Models\workschedule;
 use Illuminate\Http\Request;
@@ -16,19 +17,21 @@ use Illuminate\Support\Str;
 
 class QtapClientsController extends Controller
 {
+
+
     public function index()
     {
         $qtap_clients = qtap_clients::all();
 
         $clients_pricing = qtap_clients_brunchs::with('pricing')
-        ->get()
-        ->groupBy('pricing_id')
-        ->map(function ($group) {
-            return [
-                'pricing' => $group->first()->pricing->name,
-                'total_clients_brunchs' => $group->count()
-            ];
-        });
+            ->get()
+            ->groupBy('pricing_id')
+            ->map(function ($group) {
+                return [
+                    'pricing' => $group->first()->pricing->name,
+                    'total_clients_brunchs' => $group->count()
+                ];
+            });
         // dd($clients_pricing);
 
         return response()->json([
@@ -38,69 +41,44 @@ class QtapClientsController extends Controller
         ]);
     }
 
-    // public function store(Request $request)
-    // {
+    public function get_info()
+    {
 
 
-    //     try {
+        $id = auth()->user()->id;
 
-    //         $validatedData = $request->validate([
-    //             'name' => 'required|string|max:255',
-    //             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-    //             'country' => 'nullable|string|max:255',
-    //             'mobile' => 'required|string|max:255',
-    //             'birth_date' => 'nullable|date',
-    //             'email' => 'required|string|email|max:255|unique:qtap_clients,email',
-    //             'status' => 'nullable|in:active,inactive',
-    //             'password' => 'required|string|min:8',
-    //             'user_type' => 'nullable|in:qtap_clients',
-    //             'payment_way' => 'nullable|in:bank_account,wallet,credit_card',
-    //         ]);
+        $qtap_clients = qtap_clients::with([
+            'brunchs',
+            'brunchs.workschedule',
+            'brunchs.contact_info',
+            'brunchs.serving_ways',
+            'brunchs.payment_services'
+        ])->find($id);
 
-    //         $validatedData['password'] = Hash::make($request->password);
+        if (!$qtap_clients) {
+            return response()->json([
+                'error' => 'Client not found'
+            ], 404);
+        }
 
-    //         if ($request->hasFile('img')) {
-    //             $imagePath = $request->file('img')->store('uploads/clients', 'public');
-    //             $validatedData['img'] = $imagePath;
-    //         }
-
-    //         $new_client = qtap_clients::create([
-    //             'name' => $validatedData['name'],
-    //             'img' => $validatedData['img'] ?? null,
-    //             'country' => $validatedData['country'] ?? null,
-    //             'mobile' => $validatedData['mobile'],
-    //             'birth_date' => $validatedData['birth_date'] ?? null,
-    //             'email' => $validatedData['email'],
-    //             'password' => $validatedData['password'],
-    //             'user_type' => $validatedData['user_type'] ?? null,
-    //         ]);
-
-    //         return response()->json([
-    //             'status' => 'success',
-    //             'message' => 'add new client successfully but is not active',
-    //             'data' => $new_client,
-    //         ], 201);
-    //     } catch (ValidationException $e) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Some data is incomplete or incorrect.',
-    //             'errors' => $e->errors(),
-    //         ], 422);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'An error occurred while adding data.',
-    //             'error_details' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-
-
+        return response()->json([
+            'success' => true,
+            'qtap_clients' => $qtap_clients
+        ]);
+    }
 
 
     public function store(Request $request)
     {
         try {
+
+
+            $last_client = qtap_clients::where('email', $request->email)->where('status', 'inactive')->first();
+
+            if ($last_client) {
+                $last_client->forceDelete();
+            }
+
             // التحقق من صحة البيانات الأساسية للعميل
             $validatedData = $request->validate([
                 'name' => 'required|string|max:255',
@@ -116,6 +94,62 @@ class QtapClientsController extends Controller
             ]);
 
             $validatedData['password'] = Hash::make($request->password);
+
+
+            $branches = collect($request->all())->filter(function ($value, $key) {
+                return Str::startsWith($key, 'brunch'); // البحث عن المفاتيح التي تبدأ بـ "brunch"
+            });
+
+
+
+
+            $number_of_branches = $branches->count();
+
+
+
+
+            $service_name = 'qtap_clients'; // اسم الخدمة
+            $pricing = pricing::find($request->pricing_id); // تكلفة الخدمة
+
+
+            if ($pricing && $request['pricing_way'] == 'monthly_price') {
+
+                $service_cost = $pricing->monthly_price;
+            } elseif ($pricing && $request['pricing_way'] == 'yearly_price') {
+
+                $service_cost = $pricing->yearly_price;
+            } else {
+                return response()->json([
+                    'error' => 'pricing_id or pricing_way is missing or invalid.'
+                ]);
+            }
+
+
+
+            if ($number_of_branches == 2) {
+
+                $total_cost = floatval($service_cost  * 1.5);
+            } elseif ($number_of_branches == 3) {
+
+                $total_cost = floatval($service_cost  * 2);
+            } elseif ($number_of_branches > 3) {
+
+                $pairs = intdiv($number_of_branches, 2); // عدد الأزواج
+                $remainder = $number_of_branches % 2; // الفرع المتبقي (إن وجد)
+
+                if ($remainder == 1) {
+                    // إذا كان هناك فرع زائد، يتم دمجه مع آخر زوج وحسابه بمعامل 2
+                    $total_cost = ($pairs - 1) * floatval(($service_cost  * 1.5)) + floatval(($service_cost  * 2));
+                } else {
+                    // إذا لم يكن هناك فرع زائد، نحسب كل زوج بمعامل 1.5
+                    $total_cost = $pairs * floatval(($service_cost * 1.5));
+                }
+            }
+
+
+
+            $total_cost = ceil($total_cost);
+
 
             if ($request->hasFile('img')) {
                 $imagePath = $request->file('img')->store('uploads/clients', 'public');
@@ -148,7 +182,7 @@ class QtapClientsController extends Controller
                 $branch = qtap_clients_brunchs::create([
                     'client_id' => $new_client->id,
                     'currency_id' => $branchData['currency_id'] ?? null,
-                    'pricing_id' => $branchData['pricing_id'] ?? null,
+                    'pricing_id' => $request['pricing_id'] ?? null,
                     'discount_id' => $branchData['discount_id'] ?? null,
                     'business_name' => $branchData['business_name'] ?? null,
                     'business_country' => $branchData['business_country'] ?? null,
@@ -230,17 +264,66 @@ class QtapClientsController extends Controller
             }
 
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Client and branches added successfully.',
-                'data' => $new_client,
-            ], 201);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Some data is incomplete or incorrect.',
-                'errors' => $e->errors(),
-            ], 422);
+
+
+
+            if ($request['payment_method'] == 'wallet' || $total_cost != 0) {
+
+                $userData = [
+                    'first_name' => $request->name,
+                    'last_name' => $request->name,
+                    'email' => $request->email,
+                    'password' => $request->password,
+                    'phone_number' => $request->mobile,
+                    'user_id' => $new_client->id
+                ];
+
+                // بيانات الطلب الخاص برسوم التسجيل
+                $orderData = [
+
+                    'total' =>  $total_cost, // رسوم اشتراك على سبيل المثال
+                    'currency' => 'EGP',
+                    'service_name' =>  $service_name,
+
+                    'items' => [
+                        [
+                            // "name" => "User Registration Fee",
+                            'name' =>   $service_name,
+                            "amount_cents" => intval($total_cost) * 100,
+                            "description" => "Qtap Client Registration",
+                            "quantity" => $number_of_branches
+                        ]
+                    ]
+                ];
+
+                // استدعاء كنترولر الدفع
+                $paymobController = new PaymobController();
+                $response = $paymobController->processPayment($orderData, $userData);
+
+
+                if ($response['status'] == 'success') {
+
+                    return response()->json([
+                        'status' => 'success',
+                        'message' => 'Client and branches added successfully.',
+                        'data' => $new_client,
+                        'payment_url' => $response['payment_url']
+                    ], 201);
+                } else {
+
+                    return response()->json([
+                        'response' => $response
+
+                    ], 201);
+                }
+            } else {
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Client and branches added successfully.',
+                    'data' => $new_client,
+                ], 201);
+            }
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -249,9 +332,6 @@ class QtapClientsController extends Controller
             ], 500);
         }
     }
-
-
-
 
 
 
@@ -846,10 +926,6 @@ class QtapClientsController extends Controller
     }
 
 
-
-
-
-
     public function update(Request $request, $id)
     {
         try {
@@ -994,65 +1070,6 @@ class QtapClientsController extends Controller
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-    // public function update(Request $request, $id)
-    // {
-    //     $validatedData = $request->validate([
-    //         'name' => 'nullable|string|max:255',
-    //         'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-    //         'country' => 'nullable|string|max:255',
-    //         'mobile' => 'nullable|string|max:255',
-    //         'birth_date' => 'nullable|date',
-    //         'status' => 'nullable|in:active,inactive',
-    //         'email' => 'nullable|string|email|max:255',
-    //         'password' => 'nullable|string|min:1',
-    //         'user_type' => 'nullable|in:qtap_clients',
-    //         'payment_way' => 'nullable|in:bank_account,wallet,credit_card',
-    //     ]);
-
-    //     try {
-    //         $qtap_affiliate = qtap_clients::find($id);
-    //         if (!$qtap_affiliate) {
-    //             return response()->json([
-    //                 'status' => 'error',
-    //                 'message' => 'المستخدم غير موجود.',
-    //             ], 404);
-    //         }
-
-    //         if ($request->hasFile('img')) {
-    //             $imagePath = $request->file('img')->store('uploads/clients', 'public');
-    //             $validatedData['img'] = 'public/storage/' . $imagePath;
-    //         }
-
-    //         if ($request->filled('password')) {
-    //             $validatedData['password'] = Hash::make($request->password);
-    //         }
-
-    //         $qtap_affiliate->update(array_filter($validatedData));
-
-    //         return response()->json([
-    //             'status' => 'success',
-    //             'message' => 'Data updated successfully.',
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'An error occurred while adding data.',
-    //             'error_details' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
 
     public function destroy($id)
     {

@@ -21,6 +21,7 @@ return new class extends Migration
             $table->enum('status', ['active', 'inactive'])->default('inactive');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('user_type');
             $table->string('img')->nullable();
             $table->unsignedBigInteger('campaign_id')->nullable();
             $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('set null');

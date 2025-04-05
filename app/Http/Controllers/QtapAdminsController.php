@@ -7,6 +7,7 @@ use App\Models\clients_logs;
 use App\Models\qtap_affiliate;
 use App\Models\qtap_admins;
 use App\Models\qtap_clients;
+use App\Models\qtap_clients_brunchs;
 use Illuminate\Http\Request;
 
 class QtapAdminsController extends Controller
@@ -30,7 +31,15 @@ class QtapAdminsController extends Controller
     public function dashboard()
     {
 
-        $clients_active = qtap_clients::with('logs')->where('status', 'active')->get();
+        // $clients_active = qtap_clients::with('logs' , 'brunchs.pricing')->where('status', 'active')->get();
+
+        $clients_active = qtap_clients::with('logs' , 'brunchs.pricing')->where('status', 'active')->get();
+
+        $qtap_clients_brunchs = qtap_clients_brunchs::with('pricing')->get();
+
+        $packages = $qtap_clients_brunchs->pluck('pricing')->flatten()->groupBy('name')->map(fn($group) => $group->count());
+
+        dd($packages);
         $qtap_affiliate = qtap_affiliate::where('status', 'active')->get();
 
 
@@ -41,8 +50,8 @@ class QtapAdminsController extends Controller
         return response()->json([
             "success" => true,
             "clients_active" => $clients_active,
-            "affiliate" => $qtap_affiliate,
-            "clients_inactive" => $clients_inactive
+            // "affiliate" => $qtap_affiliate,
+            // "clients_inactive" => $clients_inactive
         ]);
     }
 

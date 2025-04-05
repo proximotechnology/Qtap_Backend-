@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class payment extends Model
+class Revenue extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['brunch_id' , 'API_KEY' , 'IFRAME_ID' , 'INTEGRATION_ID' , 'HMAC'];
-
+    protected $fillable = [
+        'client_id',
+        'value',
+        'order_id',
+    ];
 }

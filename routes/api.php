@@ -30,6 +30,7 @@ use App\Http\Controllers\MealsVariantsController;
 use App\Http\Controllers\RestaurantUsersController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RestaurantStaffController;
+use App\Http\Controllers\DiscountController;
 
 
 /*
@@ -69,6 +70,9 @@ Route::middleware('admin_or_client')->group(function () {
 
 
 
+
+
+
     Route::post('clients_update_profile/{id}', [QtapClientsController::class, 'update_profile']);
     Route::post('clients_update_menu/{id}', [QtapClientsController::class, 'update_menu']);
 });
@@ -79,11 +83,22 @@ Route::middleware('admin_or_affiliate')->group(function () {
     Route::post('qtap_affiliate/{id}', [QtapAffiliateController::class, 'update']);
 });
 
+Route::get('pricing', [PricingController::class, 'index'])->name('pricing');
+
+Route::get('discount', [DiscountController::class, 'index']);
+
 
 
 //---------------------------------------------ADMIN----------------------------------------
 
 Route::middleware('auth:qtap_admins')->group(function () {
+
+
+    //-------------discount--------
+    Route::post('discount', [DiscountController::class, 'store']);
+    Route::put('discount/{id}', [DiscountController::class, 'update']);
+    Route::delete('discount/{id}', [DiscountController::class, 'destroy']);
+
 
 
 
@@ -112,14 +127,23 @@ Route::middleware('auth:qtap_admins')->group(function () {
     Route::delete('we_serv/{id}', [WeServController::class, 'destroy']);
 
 
+    // Route::resource('pricing', PricingController::class);
+
+    // Route::get('pricing', [PricingController::class, 'pricing'])->name('pricing');
+    Route::post('pricing', [PricingController::class, 'store'])->name('pricing');
+    Route::put('pricing/{id}', [PricingController::class, 'update'])->name('pricing');
+    Route::delete('pricing/{id}', [PricingController::class, 'destroy'])->name('pricing');
+
+
 
     //-------------dashboard--------
     Route::resource('note', NoteController::class);
-    Route::resource('pricing', PricingController::class);
     Route::resource('currency', CurrencyController::class);
     Route::resource('products', ProductsController::class);
     Route::resource('campaigns', CampaignsController::class);
     Route::post('products/update/{products}', [ProductsController::class, 'update']);
+
+    
     Route::post('dashboard', [QtapAdminsController::class, 'dashboard'])->name('dashboard');
 
     Route::prefix('settings')->group(function () {
@@ -182,7 +206,9 @@ Route::post('customer_info', [CustomerInfoController::class, 'store']);
 //------------------CLIENT -------------------
 Route::middleware('auth:qtap_clients')->group(function () {
 
+    //-----------get_info------------------------------
 
+    Route::get('get_info', [QtapClientsController::class, 'get_info']);
 
 
     //------------restaurant_staff-----

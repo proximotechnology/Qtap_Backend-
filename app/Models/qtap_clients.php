@@ -28,6 +28,7 @@ class qtap_clients extends Authenticatable implements JWTSubject
         'password',
         'img',
         'user_type',
+        'order_id',
     ];
 
     /**
@@ -66,5 +67,13 @@ class qtap_clients extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(clients_logs::class, 'client_id');
     }
+
+    public function brunchs(){
+
+        return $this->hasMany(qtap_clients_brunchs::class , 'id', 'client_id');
+    }
+
+
+
 
 }

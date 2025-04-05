@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description');
-            $table->integer('specific_number');
+            $table->integer('orders_limit');
             $table->json('feature');
             $table->decimal('monthly_price', 8, 2);
             $table->decimal('yearly_price', 8, 2);
