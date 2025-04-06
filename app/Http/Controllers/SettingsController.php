@@ -29,7 +29,7 @@ class SettingsController extends Controller
             if ($request->hasFile('img')) {
                 foreach ($request->file('img') as $image) {
                     $imagePath = $image->store('images/Content', 'public');
-                    $imagePaths[] = 'public/storage/' . $imagePath;
+                    $imagePaths[] = 'storage/' . $imagePath;
                 }
             }
 
@@ -83,7 +83,7 @@ class SettingsController extends Controller
                     $imagePaths = [];
                     foreach ($request->file('img') as $image) {
                         $imagePath = $image->store('images/Content', 'public');
-                        $imagePaths[] = 'public/storage/' .  $imagePath;
+                        $imagePaths[] = 'storage/' .  $imagePath;
                     }
                 }
 
@@ -272,7 +272,7 @@ class SettingsController extends Controller
             if ($request->hasFile('img')) {
                 foreach ($request->file('img') as $image) {
                     $imagePath = $image->store('images/Content', 'public');
-                    $imagePaths[] =  'public/storage/' . $imagePath;
+                    $imagePaths[] =  'storage/' . $imagePath;
                 }
             }
 
@@ -309,7 +309,7 @@ class SettingsController extends Controller
                 if ($request->hasFile('img')) {
                     foreach ($request->file('img') as $image) {
                         $imagePath = $image->store('images/Content', 'public');
-                        $imagePaths[] =  'public/storage/' .  $imagePath;
+                        $imagePaths[] =  'storage/' .  $imagePath;
                     }
                 }
 
@@ -381,7 +381,7 @@ class SettingsController extends Controller
             if ($request->hasFile('img')) {
                 foreach ($request->file('img') as $image) {
                     $imagePath = $image->store('images/Content', 'public');
-                    $imagePaths[] =  'public/storage/' .  $imagePath;
+                    $imagePaths[] =  'storage/' .  $imagePath;
                 }
             }
 
@@ -418,7 +418,7 @@ class SettingsController extends Controller
                 if ($request->hasFile('img')) {
                     foreach ($request->file('img') as $image) {
                         $imagePath = $image->store('images/Content', 'public');
-                        $imagePaths[] =  'public/storage/' .  $imagePath;
+                        $imagePaths[] =  'storage/' .  $imagePath;
                     }
                 }
 

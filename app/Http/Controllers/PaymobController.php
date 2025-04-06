@@ -261,10 +261,4 @@ class PaymobController extends Controller
             return ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
-
-
-
-
-
-
 }

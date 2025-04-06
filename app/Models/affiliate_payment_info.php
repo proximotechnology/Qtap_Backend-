@@ -18,9 +18,12 @@ class affiliate_payment_info extends Model
         'bank_account_name',
         'wallet_provider',
         'wallet_number',
+
+
+
+        'name_on_credit_card',
         'credit_card_number',
-        'credit_card_holder_name',
-        'credit_card_expiration_date',
+        'address',
     ];
 
 }

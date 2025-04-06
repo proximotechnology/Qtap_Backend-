@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\qtap_affiliate;
 use App\Models\affiliate_payment_info;
+use GuzzleHttp\Promise\Create;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -29,73 +30,41 @@ class QtapAffiliateController extends Controller
     public function store(Request $request)
     {
         try {
-            // التحقق من البيانات المدخلة
-            $request->validate([
+            qtap_affiliate::where('email', $request->email)->where('status', 'inactive')->delete();
+
+            $validatedData = $request->validate([
                 'name' => 'required|string|max:255',
-                'country' => 'nullable|string|max:255',
                 'mobile' => 'required|string|max:255',
-                'birth_date' => 'nullable|date',
                 'email' => 'required|string|email|max:255|unique:qtap_affiliates,email',
                 'password' => 'required|string|min:1',
+                'country' => 'nullable|string|max:255',
+                'birth_date' => 'nullable|date',
                 'user_type' => 'nullable|in:qtap_affiliates',
                 'payment_way' => 'nullable|in:bank_account,wallet,credit_card',
             ]);
 
-            // تشفير كلمة المرور
-            $password = Hash::make($request->password);
 
-            // إنشاء بيانات المستخدم
-            $qtap_affiliate = qtap_affiliate::create([
-                'name' => $request->name,
-                'country' => $request->country,
-                'mobile' => $request->mobile,
-                'birth_date' => $request->birth_date,
-                'email' => $request->email,
-                'password' => $password,
-                'user_type' => $request->user_type,
-            ]);
+            $validatedData['password'] = Hash::make($validatedData['password']);
+            $affiliate = qtap_affiliate::create($validatedData);
 
-            // بيانات طرق الدفع
-            $paymentData = $request->only([
-                'payment_way',
-                'bank_name',
-                'bank_account_number',
-                'bank_account_name',
-                'wallet_provider',
-                'wallet_number',
-                'credit_card_number',
-                'credit_card_holder_name',
-                'credit_card_expiration_date'
-            ]);
 
-            // إنشاء بيانات طرق الدفع المرتبطة بالمستخدم
-            if (!empty($paymentData['payment_way'])) {
-                affiliate_payment_info::create(array_merge($paymentData, [
-                    'affiliate_id' => $qtap_affiliate->id,
-                ]));
-            }
+            $paymentInfo_data = $request->all();
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'تم إضافة البيانات بنجاح.',
-                'data' => $qtap_affiliate,
-            ], 201);
-        } catch (\Exception $e) {
-            // في حالة حدوث أي خطأ آخر، نعرض رسالة الخطأ بالتفصيل
-            return response()->json([
-                'status' => 'error',
-                'message' => 'حدث خطأ أثناء إضافة البيانات.',
-                'error_details' => $e->getMessage(),
-            ], 500);
+            $paymentInfo_data['affiliate_id'] = $affiliate->id;
+
+            $paymentInfo = affiliate_payment_info::create($paymentInfo_data);
+
+
+
+
+            return response()->json(['status' => 'success', 'message' => 'تمت الإضافة بنجاح.', 'data' => compact('affiliate', 'paymentInfo')], 201);
         } catch (ValidationException $e) {
-            // إذا كانت الأخطاء بسبب التحقق من صحة البيانات
-            return response()->json([
-                'status' => 'error',
-                'message' => 'بعض البيانات غير مكتملة أو غير صحيحة.',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(['status' => 'error', 'message' => 'بيانات غير صحيحة.', 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'حدث خطأ.', 'error' => $e->getMessage()], 500);
         }
     }
+
 
 
 
@@ -177,7 +146,23 @@ class QtapAffiliateController extends Controller
 
 
 
+    public function get_affiliate_info($id)
+    {
 
+        $affiliate = qtap_affiliate::with('payment_info')->find($id);
+
+        if (!$affiliate) {
+            return response()->json([
+                'error' => 'affiliate not found'
+            ], 404);
+        }
+
+
+        return response()->json([
+            'success' => true,
+            'affiliate' => $affiliate
+        ]);
+    }
 
 
     public function destroy($id)

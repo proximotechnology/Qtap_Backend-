@@ -68,6 +68,30 @@ class QtapClientsController extends Controller
     }
 
 
+    public function get_client_info($id)
+    {
+
+        $qtap_clients = qtap_clients::with([
+            'brunchs',
+            'brunchs.workschedule',
+            'brunchs.contact_info',
+            'brunchs.serving_ways',
+            'brunchs.payment_services'
+        ])->find($id);
+
+        if (!$qtap_clients) {
+            return response()->json([
+                'error' => 'Client not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'qtap_clients' => $qtap_clients
+        ]);
+    }
+
+
     public function store(Request $request)
     {
         try {
@@ -124,7 +148,7 @@ class QtapClientsController extends Controller
                 ]);
             }
 
-
+            $total_cost = $service_cost;
 
             if ($number_of_branches == 2) {
 
@@ -267,7 +291,7 @@ class QtapClientsController extends Controller
 
 
 
-            if ($request['payment_method'] == 'wallet' || $total_cost != 0) {
+            if ($request['payment_method'] == 'wallet' || $total_cost != 0.0) {
 
                 $userData = [
                     'first_name' => $request->name,

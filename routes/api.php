@@ -55,6 +55,7 @@ Route::get('home', [homeController::class, 'index']);
 
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
+
     return $request->user();
 });
 
@@ -70,11 +71,13 @@ Route::middleware('admin_or_client')->group(function () {
 
 
 
+    Route::get('get_client_info/{id}', [QtapClientsController::class, 'get_client_info']);
+    Route::get('get_affiliate_info/{id}', [QtapAffiliateController::class, 'get_affiliate_info']);
 
 
 
     Route::post('clients_update_profile/{id}', [QtapClientsController::class, 'update_profile']);
-    Route::post('clients_update_menu/{id}', [QtapClientsController::class, 'update_menu']);
+    Route::post('clients_update_menu/{id}', [QtapAffiliateController::class, 'update_menu']);
 });
 
 //-------------------------------------------ADMIN OR AFFILIATE-----------------------------
@@ -143,7 +146,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
     Route::resource('campaigns', CampaignsController::class);
     Route::post('products/update/{products}', [ProductsController::class, 'update']);
 
-    
+
     Route::post('dashboard', [QtapAdminsController::class, 'dashboard'])->name('dashboard');
 
     Route::prefix('settings')->group(function () {
@@ -203,12 +206,19 @@ Route::resource('chat', ChatController::class);
 Route::post('customer_info', [CustomerInfoController::class, 'store']);
 
 
+Route::post('add_affiliate', [QtapAffiliateController::class, 'store'])->name('add_affiliate');
+
+
+
+
 //------------------CLIENT -------------------
 Route::middleware('auth:qtap_clients')->group(function () {
 
     //-----------get_info------------------------------
 
     Route::get('get_info', [QtapClientsController::class, 'get_info']);
+
+
 
 
     //------------restaurant_staff-----

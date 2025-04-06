@@ -28,6 +28,13 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+
+        qtap_affiliate::where('email', $request->email)->where('status', 'inactive')->delete();
+
+
+        qtap_clients::where('email', $request->email)->where('status', 'inactive')->delete();
+
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'country' => 'required|string|max:255',
@@ -80,7 +87,7 @@ class AuthController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'تم تسجيل المستخدم بنجاح.',
-                'token' => $token,
+                // 'token' => $token,
                 'user' => $user,
             ], 201);
         } catch (QueryException $e) {
@@ -112,14 +119,23 @@ class AuthController extends Controller
     public function login(Request $request)
     {
 
-        $request->validate([
+        // dd('kk');
+
+        $validator = Validator::make($request->all(), ([
             'email' => 'required|string|email',
             'password' => 'required|string',
-            'user_type' => 'required|string',
-        ]);
+            'user_type' => 'required|in:qtap_admins,qtap_clients,qtap_affiliates',
+        ]));
 
-        $credentials = $request->only('email', 'password' , 'user_type');
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+
+
+        $credentials = $request->only('email', 'password', 'user_type');
         $user = null;
+
 
         if ($token = Auth::guard('qtap_admins')->attempt($credentials)) {
 
@@ -134,6 +150,8 @@ class AuthController extends Controller
                 ]);
             }
         } elseif ($token = Auth::guard('qtap_clients')->attempt($credentials)) {
+
+
 
             $user = Auth::guard('qtap_clients')->user();
             $brunches = qtap_clients_brunchs::where('client_id', $user->id)->get();
@@ -171,7 +189,7 @@ class AuthController extends Controller
                     'user' => $user,
                 ]);
             }
-        }else {
+        } else {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 

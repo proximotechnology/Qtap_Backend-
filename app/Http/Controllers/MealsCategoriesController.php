@@ -36,7 +36,8 @@ class MealsCategoriesController extends Controller
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('images', 'public');
-            $data['image'] = 'storage/public/' . $path;
+          
+            $data['image'] = 'storage/' . $path;
         }
 
         $category = meals_categories::create($data);
@@ -78,7 +79,7 @@ class MealsCategoriesController extends Controller
                 Storage::disk('public')->delete($meals_categories->image);
             }
             $path = $request->file('image')->store('images', 'public');
-            $data['image'] =  'storage/public/' . $path;
+            $data['image'] =  'storage/' . $path;
         }
 
         $meals_categories->update($data);

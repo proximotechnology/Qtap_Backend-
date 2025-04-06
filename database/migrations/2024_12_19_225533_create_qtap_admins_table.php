@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('img')->nullable();
-            $table->string('user_type');
+            $table->enum('user_type', ['qtap_admins', 'qtap_clients','qtap_affiliates'])->default('qtap_admins');
             $table->softDeletes();
             $table->rememberToken();
             $table->timestamps();

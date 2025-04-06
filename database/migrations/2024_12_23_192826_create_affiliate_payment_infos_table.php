@@ -21,13 +21,13 @@ return new class extends Migration
             $table->string('bank_name')->nullable();
             $table->string('bank_account_number')->nullable();
             $table->string('bank_account_name')->nullable();
-            
+
             $table->string('wallet_provider')->nullable();
             $table->string('wallet_number')->nullable();
 
+            $table->string('name_on_credit_card')->nullable();
             $table->string('credit_card_number')->nullable();
-            $table->string('credit_card_holder_name')->nullable();
-            $table->date('credit_card_expiration_date')->nullable();
+            $table->date('address')->nullable();
 
             $table->timestamps();
         });

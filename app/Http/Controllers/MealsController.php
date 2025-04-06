@@ -50,7 +50,7 @@ class MealsController extends Controller
 
         if ($request->hasFile('img')) {
             $path = $request->file('img')->store('images', 'public');
-            $data['img'] = 'public/' . $path;
+            $data['img'] = 'storage/' . $path;
         }
 
         $meal = meals::create($data);
@@ -109,7 +109,7 @@ class MealsController extends Controller
                 Storage::disk('public')->delete($meal->img);
             }
             $path = $request->file('img')->store('images', 'public');
-            $data['img'] = 'public/' . $path;
+            $data['img'] = 'storage/' . $path;
         }
 
         $meal->update($data);

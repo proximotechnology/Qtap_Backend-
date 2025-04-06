@@ -30,7 +30,7 @@ class WeServController extends Controller
 
         if ($request->hasFile('img')) {
             $imagePath = $request->file('img')->store('images/we_serv', 'public');
-            $data['img'] = 'public/storage/' . $imagePath;
+            $data['img'] = 'storage/' . $imagePath;
         }
 
         $weServ = we_serv::create($data);
@@ -56,7 +56,7 @@ class WeServController extends Controller
 
             if ($request->hasFile('img')) {
                 $imagePath = $request->file('img')->store('images/we_serv', 'public');
-                $data['img'] = 'public/storage/' . $imagePath;
+                $data['img'] = 'storage/' . $imagePath;
             }
 
               $we_serv->update($data);

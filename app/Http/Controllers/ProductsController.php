@@ -42,7 +42,7 @@ class ProductsController extends Controller
             $imageName = time() . '_' . $image->getClientOriginalName();
             $imagePath = $image->storeAs('uploads/products', $imageName, 'public');
 
-            $imagePath = 'public/storage/' . $imagePath;
+            $imagePath = 'storage/' . $imagePath;
         }
 
 
@@ -92,7 +92,7 @@ class ProductsController extends Controller
             $image = $request->file('img');
             $imageName = time() . '_' . $image->getClientOriginalName();
             $imagePath = $image->storeAs('uploads/products', $imageName, 'public');
-            $products->img = 'public/storage/' . $imagePath;
+            $products->img = 'storage/' . $imagePath;
         }
 
         $products->save();
