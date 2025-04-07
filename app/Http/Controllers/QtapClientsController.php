@@ -32,12 +32,34 @@ class QtapClientsController extends Controller
                     'total_clients_brunchs' => $group->count()
                 ];
             });
+
+
+
+        $allBranchesCount = qtap_clients_brunchs::count();
+
+        $Client = pricing::withCount('qtap_clients_brunchs')->get()->map(function ($package) use ($allBranchesCount) {
+
+            $package->percentage = $allBranchesCount > 0 ? round(($package->qtap_clients_brunchs_count / $allBranchesCount) * 100, 2) . '%' : 0 . '%';
+
+            return $package;
+        })->select('id', 'name', 'qtap_clients_brunchs_count', 'percentage');
+
+        $Client['number_branches_clients'] = $allBranchesCount;
+
+
+
+
+
+
+
+
+
         // dd($clients_pricing);
 
         return response()->json([
             'success' => true,
             'qtap_clients' => $qtap_clients,
-            'clients_pricing' => $clients_pricing
+            'clients_pricing' => $Client
         ]);
     }
 
@@ -291,7 +313,7 @@ class QtapClientsController extends Controller
 
 
 
-            if ($request['payment_method'] == 'wallet' || $total_cost != 0.0) {
+            if ($request['payment_method'] == 'wallet' && $total_cost != 0.0) {
 
                 $userData = [
                     'first_name' => $request->name,

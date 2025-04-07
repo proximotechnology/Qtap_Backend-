@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\qtap_affiliate;
 use App\Models\affiliate_payment_info;
+use App\Models\affiliate_transactions;
 use GuzzleHttp\Promise\Create;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -67,7 +68,15 @@ class QtapAffiliateController extends Controller
 
 
 
+    public function affiliate_transactions(){
 
+        $transactions = affiliate_transactions::with('affiliate')->where('created_at', '>=', now()->subDays(30))->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'transactions' => $transactions
+        ]);
+    }
 
 
     public function update(Request $request, $id)

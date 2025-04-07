@@ -55,4 +55,9 @@ class qtap_clients_brunchs extends Model
         return $this->hasMany(payment_services::class, 'brunch_id');
     }
 
+    public function revenue(){
+
+        return $this->hasMany(Revenue::class , 'client_id' , 'client_id');
+    }
+
 }

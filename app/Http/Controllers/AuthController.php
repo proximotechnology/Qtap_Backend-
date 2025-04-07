@@ -163,7 +163,7 @@ class AuthController extends Controller
 
             clients_logs::create([
                 'client_id' => $user->id,
-                'action' => 'login',
+                'action' => 'active',
             ]);
 
 
@@ -199,15 +199,28 @@ class AuthController extends Controller
     }
 
 
+
+
     public function logout(Request $request)
     {
 
-        clients_logs::create([
-            'user_id' => Auth::id(),
-            'action' => 'logout',
-        ]);
 
-        Auth::logout();
-        return response()->json(['success' => true, 'message' => 'Logout successful']);
+        if (auth()->check()) {
+            // تسجيل السجل عند تسجيل الخروج
+            clients_logs::create([
+                'client_id' => auth()->user()->id,
+                'action' => 'inactive',
+            ]);
+
+            // إبطال التوكن الحالي (إذا كنت تستخدم JWT)
+            JWTAuth::invalidate(JWTAuth::getToken());
+
+            // تسجيل الخروج
+            Auth::logout();
+
+            return response()->json(['success' => true, 'message' => 'Logout successful']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'No user logged in']);
     }
 }

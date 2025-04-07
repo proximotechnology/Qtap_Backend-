@@ -14,4 +14,19 @@ class Revenue extends Model
         'value',
         'order_id',
     ];
+
+
+
+    public function brunchs(){
+
+        return $this->belongsTo(qtap_clients_brunchs::class , 'client_id', 'client_id');
+    }
+
+    public function client(){
+
+        return $this->belongsTo(qtap_clients::class , 'client_id', 'id');
+    }
+
+
+
 }

@@ -148,6 +148,18 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
 
     Route::post('dashboard', [QtapAdminsController::class, 'dashboard'])->name('dashboard');
+    Route::post('Sales/{id}', [QtapAdminsController::class, 'Sales'])->name('Sales');
+    Route::post('Sales_by_days/{id}', [QtapAdminsController::class, 'Sales_by_days'])->name('Sales_by_days');
+    Route::post('Performance/{startYear}-{endYear}', [QtapAdminsController::class, 'Performance'])->name('Performance');
+
+
+    Route::post('wallet/{year}', [QtapAdminsController::class, 'wallet'])->name('wallet');
+    Route::get('Deposits/{startDate}/{endDate}', [QtapAdminsController::class, 'Deposits'])->name('Deposits');
+
+    Route::get('affiliate_transactions', [QtapAffiliateController::class, 'affiliate_transactions'])->name('affiliate_transactions');
+
+
+
 
     Route::prefix('settings')->group(function () {
         Route::post('content', [SettingsController::class, 'createSettingContent']);
@@ -213,6 +225,9 @@ Route::post('add_affiliate', [QtapAffiliateController::class, 'store'])->name('a
 
 //------------------CLIENT -------------------
 Route::middleware('auth:qtap_clients')->group(function () {
+
+    Route::post('logout', [AuthController::class, 'logout']);
+
 
     //-----------get_info------------------------------
 

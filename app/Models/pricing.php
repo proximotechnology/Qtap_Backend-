@@ -13,4 +13,15 @@ class pricing extends Model
 
     protected $fillable = ['name' , 'description', 'orders_limit', 'feature', 'monthly_price', 'yearly_price', 'is_active'] ;
 
+
+
+
+    public function qtap_clients_brunchs(){
+
+        return $this->hasMany(qtap_clients_brunchs::class ,  'pricing_id');
+    }
+
+
+
 }
+
