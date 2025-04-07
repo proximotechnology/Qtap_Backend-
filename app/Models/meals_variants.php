@@ -8,5 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class meals_variants extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'price', 'meals_id' ,'brunch_id'];
+    protected $fillable = ['name', 'price', 'meals_id' ,'brunch_id' ];
 }

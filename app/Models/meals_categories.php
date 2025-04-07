@@ -17,4 +17,9 @@ class meals_categories extends Model
 
 
     ];
+
+    public function meals()
+    {
+        return $this->hasMany(meals::class,'categories_id');
+    }
 }

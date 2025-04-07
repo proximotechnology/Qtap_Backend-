@@ -31,6 +31,8 @@ use App\Http\Controllers\RestaurantUsersController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RestaurantStaffController;
 use App\Http\Controllers\DiscountController;
+use App\Http\Controllers\DeliveryRiderController;
+use App\Http\Controllers\DeliveryAreaController;
 use App\Models\qtap_admins;
 
 /*
@@ -95,6 +97,13 @@ Route::get('discount', [DiscountController::class, 'index']);
 //---------------------------------------------ADMIN----------------------------------------
 
 Route::middleware('auth:qtap_admins')->group(function () {
+
+
+
+
+
+
+    //--------------------------------------------------------------------------------------------
 
     Route::post('active_clients/{id}', [QtapAdminsController::class, 'active_clients'])->name('active_clients');
 
@@ -222,10 +231,20 @@ Route::post('customer_info', [CustomerInfoController::class, 'store']);
 Route::post('add_affiliate', [QtapAffiliateController::class, 'store'])->name('add_affiliate');
 
 
+Route::get('menu/{id}', [QtapClientsController::class, 'menu'])->name('menu');
+
+
 
 
 //------------------CLIENT -------------------
 Route::middleware('auth:qtap_clients')->group(function () {
+
+
+        //----------------------Deliver---------------------------------------------------------------
+        Route::resource('delivery', DeliveryRiderController::class);
+
+
+        Route::resource('delivery_area', DeliveryAreaController::class);
 
     Route::post('logout', [AuthController::class, 'logout']);
 

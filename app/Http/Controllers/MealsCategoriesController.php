@@ -21,7 +21,16 @@ class MealsCategoriesController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:meals_categories',
+
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('meals_categories')->where(function ($query) use ($request) {
+                    return $query->where('brunch_id', $request->brunch_id);
+                }),
+            ],
+
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'cover' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -36,7 +45,7 @@ class MealsCategoriesController extends Controller
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('images', 'public');
-          
+
             $data['image'] = 'storage/' . $path;
         }
 

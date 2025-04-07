@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\delivery_area;
 use App\Models\qtap_clients_brunchs;
 use App\Models\delivery_rider;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 
 class DeliveryRiderController extends Controller
@@ -24,15 +25,27 @@ class DeliveryRiderController extends Controller
     {
         try {
 
-            $data = $request->validate([
-                'brunch_id' => 'required|integer|max:255',
-                'delivery_areas_id' => 'required|integer|max:255',
+
+            $validate = Validator::make($request->all(), [
+                'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
+                'delivery_areas_id' => 'required|integer|exists:delivery_areas,id',
                 'name' => 'required|string',
                 'phone' => 'required|string',
                 'pin' => 'required|string',
                 'orders' => 'required|integer',
                 'status' => 'required|in:Available,Busy',
             ]);
+
+            if ($validate->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validate->errors()
+                ]);
+            }
+
+            $data = $request->all();
+
+
 
             $brunch_id = qtap_clients_brunchs::find($data['brunch_id']);
             if (!$brunch_id) {

@@ -25,5 +25,23 @@ class meals extends Model
         'price_small',
         'price_medium',
         'price_large',
+        'limit_variants',
     ];
+
+
+
+    public function variants()
+    {
+        return $this->hasMany(meals_variants::class, 'meals_id');
+    }
+
+    public function extras()
+    {
+        return $this->hasMany(meals_extra::class, 'meals_id');
+    }
+
+    public function discounts()
+    {
+        return $this->belongsTo(meals_discount::class, 'discount_id', 'id');
+    }
 }

@@ -6,6 +6,8 @@ use App\Models\qtap_clients;
 use App\Models\qtap_clients_brunchs;
 use App\Models\payment_services;
 use App\Models\contact_info;
+use App\Models\meals;
+use App\Models\meals_categories;
 use App\Models\pricing;
 use App\Models\serving_ways;
 use App\Models\workschedule;
@@ -1135,4 +1137,31 @@ class QtapClientsController extends Controller
             'message' => 'Client deleted successfully.',
         ], 200);
     }
+
+    public function menu($id){
+        // $menu = meals::with('variants' , 'Extras')->where('brunch_id' , $id)->get();
+
+
+        $menu = meals_categories::with(
+
+            'meals',
+            'meals.variants',
+            'meals.extras',
+            'meals.discounts'
+
+
+
+        )->where('brunch_id' , $id)->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $menu
+        ]);
+    }
+
+
+
+
+
+
 }

@@ -13,5 +13,6 @@ class meals_extra extends Model
         'price',
         'variants_id',
         'brunch_id',
+        'meals_id',
     ];
 }

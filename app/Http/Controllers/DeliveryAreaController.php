@@ -29,7 +29,7 @@ class DeliveryAreaController extends Controller
                 'country' => 'required|string',
                 'city' => 'required|string',
                 'phone' => 'required|string',
-                'cost' => 'required|decimal:8,2',
+                'cost' => 'required|numeric',
             ]);
 
 
@@ -71,7 +71,7 @@ class DeliveryAreaController extends Controller
                 'country' => 'required|string',
                 'city' => 'required|string',
                 'phone' => 'required|string',
-                'cost' => 'required|decimal:8,2',
+                'cost' => 'required|numeric',
             ]);
 
 
