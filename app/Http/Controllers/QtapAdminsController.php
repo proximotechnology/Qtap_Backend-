@@ -12,6 +12,10 @@ use App\Models\qtap_clients_brunchs;
 use App\Models\Revenue;
 use Illuminate\Http\Request;
 
+
+use App\Mail\active_account;
+use Illuminate\Support\Facades\Mail;
+
 use Carbon\Carbon;
 
 class QtapAdminsController extends Controller
@@ -33,6 +37,28 @@ class QtapAdminsController extends Controller
 
 
 
+    public function active_clients($id)
+    {
+        $client = qtap_clients::with('brunchs')->find($id);
+
+        if (!$client) {
+            return response()->json(['error' => 'Client not found'], 404);
+        }
+
+        $client->update(['status' => 'active']);
+
+        // تحديث جميع الفروع دفعة واحدة
+        qtap_clients_brunchs::where('client_id', $id)->update(['status' => 'active']);
+
+        $client_after = qtap_clients::with('brunchs')->find($id);
+
+        Mail::to($client->email)->send(new active_account('تم تفعيل الحساب بنجاح'));
+
+        return response()->json([
+            'success' => true,
+            'client' => $client_after
+        ]);
+    }
 
 
     public function Sales($year)
@@ -336,7 +362,7 @@ class QtapAdminsController extends Controller
 
 
 
-    
+
 
     public function Deposits($startDate, $endDate)
     {
@@ -365,56 +391,5 @@ class QtapAdminsController extends Controller
             "clients_active" => $clients_active,
             "clients_inactive" => $clients_inactive
         ]);
-    }
-
-
-
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(qtap_admins $qtap_admins)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(qtap_admins $qtap_admins)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, qtap_admins $qtap_admins)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(qtap_admins $qtap_admins)
-    {
-        //
     }
 }

@@ -18,6 +18,11 @@ Route::get('/', function () {
 });
 
 
+Route::get('/pusher', function () {
+    return view('pusher_react');
+});
+
+
 
 Route::get('thankyou', function () {
     return view('thankyou');
@@ -27,6 +32,8 @@ Route::get('thankyou', function () {
 
 
 Route::get('getcallback' , [PaymobController::class, 'getcallback'])->name('getcallback');
+
+
 
 
 

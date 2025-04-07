@@ -31,7 +31,7 @@ use App\Http\Controllers\RestaurantUsersController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RestaurantStaffController;
 use App\Http\Controllers\DiscountController;
-
+use App\Models\qtap_admins;
 
 /*
 |--------------------------------------------------------------------------
@@ -96,6 +96,7 @@ Route::get('discount', [DiscountController::class, 'index']);
 
 Route::middleware('auth:qtap_admins')->group(function () {
 
+    Route::post('active_clients/{id}', [QtapAdminsController::class, 'active_clients'])->name('active_clients');
 
     //-------------discount--------
     Route::post('discount', [DiscountController::class, 'store']);

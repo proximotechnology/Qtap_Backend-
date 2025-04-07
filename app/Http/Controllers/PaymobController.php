@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\log;
 
+use App\Mail\active_account;
+use Illuminate\Support\Facades\Mail;
+
 
 class PaymobController extends Controller
 {
@@ -100,7 +103,10 @@ class PaymobController extends Controller
 
             if ($status == "true") {
 
+                Mail::to($new_client->email)->send(new active_account('account activated'));
+
                 return redirect('thankyou')->with('success', 'Payment Successfull ... you can login now');
+
             } else {
 
                 return redirect('/thankyou')->with('error', 'Something Went Wrong Please Try Again' . $data);

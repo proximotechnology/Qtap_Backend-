@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Events\PostCreated;
 
+use App\Events\notify_msg;
+use App\Mail\active_account;
+use Illuminate\Support\Facades\Mail;
+
 
 class NoteController extends Controller
 {
@@ -40,7 +44,14 @@ class NoteController extends Controller
 
         // Create a new note
         $note = note::create($validator->validated());
-        event(new PostCreated($note));
+        $content_notify = [
+            'title' => $note->title,
+            'content' => $note->content
+        ];
+        event(new notify_msg($content_notify));
+
+    
+
         return response()->json([
             'success' => true,
             'note' => $note
