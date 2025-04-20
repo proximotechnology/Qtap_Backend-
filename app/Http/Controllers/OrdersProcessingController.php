@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\orders_processing;
 use App\Models\delivery_rider;
 use App\Models\restaurant_user_staff;
-use App\Models\Orders;
+use App\Models\orders;
 use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Validator;
@@ -28,6 +28,25 @@ class OrdersProcessingController extends Controller
         return response()->json([
             'success' => true,
             'order_map' => $order_map,
+        ]);
+    }
+
+
+    public function get_proccessing_orders($id)
+    {
+
+        $orders = orders_processing::find($id);
+
+        if (!$orders) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'orders' => $orders,
         ]);
     }
 
@@ -109,7 +128,7 @@ class OrdersProcessingController extends Controller
         $brunch_id = auth()->user()->brunch_id;
 
         // استعلام لاسترجاع الطلبات الجديدة التي لم يتم معالجتها بعد
-        $orders = Orders::with('meal')
+        $orders = orders::with('meal')
             ->whereNotIn('id', function ($query) {
                 $query->select('order_id')
                     ->from('orders_processings');
@@ -150,7 +169,7 @@ class OrdersProcessingController extends Controller
             ]);
         }
 
-        $order = Orders::find($request->order_id);
+        $order = orders::find($request->order_id);
         if (!$order) {
             return response()->json([
                 'success' => false,

@@ -44,13 +44,17 @@ class NoteController extends Controller
 
         // Create a new note
         $note = note::create($validator->validated());
+        
+        $type = 'notfy';
+
         $content_notify = [
             'title' => $note->title,
             'content' => $note->content
         ];
-        event(new notify_msg($content_notify));
 
-    
+        event(new notify_msg($content_notify, $type));
+
+
 
         return response()->json([
             'success' => true,

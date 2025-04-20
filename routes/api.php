@@ -317,6 +317,12 @@ Route::middleware(['auth:restaurant_user_staff', 'admin_or_delivery_rider'])->gr
 Route::get('order_map/{order_id}', [OrdersProcessingController::class, 'order_map']);
 
 
+Route::middleware('auth:restaurant_user_staff', 'role:admin|cashier|waiter|delivery_rider|chef')->group(function () {
+
+    Route::get('get_proccessing_orders/{id}', [OrdersProcessingController::class, 'get_proccessing_orders']);
+});
+
+
 Route::middleware('auth:restaurant_user_staff', 'role:admin|cashier')->group(function () {
 
 

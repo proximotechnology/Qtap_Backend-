@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 use App\Models\tables;
 use App\Models\meals;
+use App\Models\note;
+
+use App\Events\notify_msg;
 
 use Illuminate\Support\Facades\Validator;
 
@@ -40,6 +43,10 @@ class OrdersController extends Controller
     public function store(Request $request)
     {
         DB::beginTransaction();
+
+
+
+
 
         try {
             // التحقق من البيانات العامة
@@ -85,6 +92,31 @@ class OrdersController extends Controller
                     'message' => 'Brunch not active.',
                 ]);
             }
+
+
+            // حساب عدد الطلبات لهذا الفرع خلال هذا الشهر
+            // $currentMonthOrdersCount = orders::where('brunch_id', $brunch->id)
+            //     ->whereYear('created_at', now()->year)
+            //     ->whereMonth('created_at', now()->month)
+            //     ->count();
+
+
+
+            // $limit = $brunch->pricing->limit;
+
+
+            // if ($currentMonthOrdersCount >= $limit) {
+
+            //     $notify = note::create([
+            //         'title' => 'Order limit reached',
+            //         'content' => 'You have reached the limit of orders for this month.',
+            //     ]);
+
+            //     return response()->json([
+            //         'status' => 'error',
+            //         'message' => 'resturant reached the limit of orders ',
+            //     ]);
+            // }
 
             // إنشاء الطلب الرئيسي
             $order = orders::create([
@@ -149,6 +181,11 @@ class OrdersController extends Controller
 
                 if ($response['status'] == 'success') {
                     DB::commit();
+
+                    $type = 'add_order';
+
+                    event(new notify_msg($order, $type));
+
                     return response()->json([
                         'status' => 'success',
                         'message' => 'Order created successfully',
@@ -163,6 +200,10 @@ class OrdersController extends Controller
                 }
             } else {
                 DB::commit();
+
+                $type = 'add_order';
+                event(new notify_msg($order, $type));
+
                 return response()->json([
                     'success' => true,
                     'order' => $order

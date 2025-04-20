@@ -6,6 +6,9 @@ use App\Models\chat;
 use Illuminate\Http\Request;
 use App\Events\PostCreated;
 
+use App\Events\notify_msg;
+
+
 
 class ChatController extends Controller
 {
@@ -43,7 +46,14 @@ class ChatController extends Controller
             'message' => $validatedData['message'],
         ]);
 
-        event(new PostCreated($message));
+        
+
+        $type = 'chat';
+
+
+
+        event(new notify_msg($message, $type));
+
 
         return response()->json([
             'success' => true,

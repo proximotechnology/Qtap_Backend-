@@ -16,10 +16,12 @@ class notify_msg implements ShouldBroadcast
 
 
     public $message;
+    public $type;
 
-    public function __construct($message)
+    public function __construct($message , $type)
     {
         $this->message = $message;
+        $this->type = $type;
     }
 
     public function broadcastOn()
