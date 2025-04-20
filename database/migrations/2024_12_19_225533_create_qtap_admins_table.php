@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+
 return new class extends Migration
 {
     /**
@@ -26,6 +30,19 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
         });
+
+
+        DB::table('qtap_admins')->insert([
+            'name' => 'Super Admin',
+            'mobile' => '1234567890',
+            'email' => 'admin@gmail.com',
+            'birth_date' => '1990-01-01',
+            'country' => 'SA',
+            'password' => Hash::make('1'), // تأكد من استخدام Hash
+            'user_type' => 'qtap_admins',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /**

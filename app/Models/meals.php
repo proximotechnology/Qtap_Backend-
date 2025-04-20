@@ -44,4 +44,8 @@ class meals extends Model
     {
         return $this->belongsTo(meals_discount::class, 'discount_id', 'id');
     }
+    public function meals_special_offer(){
+
+        return $this->hasMany(meals_special_offers::class , 'meals_id' , 'id');
+    }
 }

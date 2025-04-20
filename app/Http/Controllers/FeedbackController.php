@@ -6,6 +6,8 @@ use App\Models\feedback;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
+use  Illuminate\Support\Facades\Validator;
+
 class FeedbackController extends Controller
 {
     public function index()
@@ -29,8 +31,17 @@ class FeedbackController extends Controller
     public function store(Request $request)
     {
         try {
-            $request->validate([
-                'client_id' => 'required|integer',
+
+
+
+            $request['brunch_id'] = auth()->user()->brunch_id;
+            $request['client_id'] = auth()->user()->user_id;
+
+
+
+            $validator = Validator::make($request->all(), [
+                'client_id' => 'required|integer|exists:qtap_clients,id',
+                'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
                 'star' => 'required|integer|min:1|max:5',
                 'emoji' => 'required|in:very happy,happy,said',
                 'your_goals' => 'required|in:yes,no',
@@ -38,13 +49,18 @@ class FeedbackController extends Controller
                 'comment' => 'required|string',
             ]);
 
+
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
             $feedback = Feedback::create($request->all());
 
             return response()->json($feedback, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['error' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'An error occurred while storing the feedback.'], 500);
+            return response()->json(['error' => 'An error occurred while storing the feedback.' . $e], 500);
         }
     }
 
@@ -82,7 +98,7 @@ class FeedbackController extends Controller
         }
     }
 
-    public function destroy( $id)
+    public function destroy($id)
     {
         try {
 

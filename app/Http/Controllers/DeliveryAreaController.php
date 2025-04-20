@@ -25,7 +25,7 @@ class DeliveryAreaController extends Controller
 
 
             $data = $request->validate([
-                'brunch_id' => 'required|integer|max:255',
+                'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
                 'country' => 'required|string',
                 'city' => 'required|string',
                 'phone' => 'required|string',
@@ -67,8 +67,8 @@ class DeliveryAreaController extends Controller
                 ]);
             }
             $data = $request->validate([
-                'brunch_id' => 'required|integer|max:255',
-                'country' => 'required|string',
+                'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
+                 'country' => 'required|string',
                 'city' => 'required|string',
                 'phone' => 'required|string',
                 'cost' => 'required|numeric',

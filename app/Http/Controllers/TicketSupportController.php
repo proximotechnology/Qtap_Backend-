@@ -20,9 +20,19 @@ class TicketSupportController extends Controller
 
     public function store(Request $request)
     {
+
+
+
+        $request['brunch_id'] = auth()->user()->brunch_id;
+        $request['client_id'] = auth()->user()->user_id;
+        $request['Customer_Name'] = auth()->user()->name;
+        $request['Customer_Phone'] = auth()->user()->client->mobile;
+        $request['Customer_Email'] = auth()->user()->email;
+
+
         $validator = Validator::make($request->all(), [
             'Customer_Name' => 'required|string|max:255',
-            'client_id' => 'required|integer',
+            'client_id' => 'required|integer|exists:qtap_clients,id',
             'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
             'Customer_Email' => 'required|email',
             'Customer_Phone' => 'required|string|max:15',
@@ -38,7 +48,7 @@ class TicketSupportController extends Controller
             $ticket = ticketSupport::create($request->all());
             return response()->json(['message' => 'تم إضافة التذكرة بنجاح!', 'ticket' => $ticket], 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'حدث خطأ أثناء إضافة التذكرة.'], 500);
+            return response()->json(['error' => 'حدث خطأ أثناء إضافة التذكرة.' . $e], 500);
         }
     }
 

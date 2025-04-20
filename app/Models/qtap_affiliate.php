@@ -28,6 +28,8 @@ class qtap_affiliate extends Authenticatable implements JWTSubject
         'email',
         'password',
         'img',
+        'code',
+        'user_type',
         'Campaigns',
     ];
 
@@ -66,5 +68,10 @@ class qtap_affiliate extends Authenticatable implements JWTSubject
     public function payment_info()
     {
         return $this->hasOne(affiliate_payment_info::class, 'affiliate_id');
+    }
+
+    public function clicks_count()
+    {
+        return $this->hasMany(affiliate_clicks::class, 'affiliate_code' , 'code');
     }
 }

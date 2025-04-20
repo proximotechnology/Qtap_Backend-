@@ -52,6 +52,23 @@ return [
             'driver' => 'jwt',
             'provider' => 'qtap_clients', // يحدد المزود المرتبط بهذا الحارس
         ],
+
+
+
+        'restaurant_user_staff' => [
+            'driver' => 'jwt', // استخدام jwt كـ driver
+            'provider' => 'restaurant_user_staff', // استخدام المزود المعرف أدناه
+        ],
+
+
+        'delivery_rider' => [
+            'driver' => 'jwt', // استخدام jwt كـ driver
+            'provider' => 'delivery_rider', // استخدام المزود المعرف أدناه
+        ],
+
+
+
+
         'api' => [
             'driver' => 'jwt',
             'provider' => 'users', // يحدد المزود المرتبط بهذا الحارس
@@ -92,6 +109,20 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\qtap_affiliate::class,
         ],
+
+        'restaurant_user_staff' => [
+            'driver' => 'eloquent', // استخدام Eloquent كمزود البيانات
+            'model' => App\Models\restaurant_user_staff::class, // تحديد النموذج المرتبط
+        ],
+
+
+        'delivery_rider' => [
+            'driver' => 'eloquent', // استخدام Eloquent كمزود البيانات
+            'model' => App\Models\delivery_rider::class, // تحديد النموذج المرتبط
+        ],
+
+
+
 
         // 'users' => [
         //     'driver' => 'database',

@@ -7,6 +7,8 @@ use App\Models\area;
 use App\Models\qtap_clients_brunchs;
 use Illuminate\Http\Request;
 
+use Illuminate\Support\Facades\Validator;
+
 class TablesController extends Controller
 {
     /**
@@ -29,36 +31,30 @@ class TablesController extends Controller
     public function store(Request $request)
     {
         try {
-
-
-            $data = $request->validate([
-                'brunch_id' => 'required|integer|max:255',
-                'area_id' => 'required|integer|max:255',
-                'name' => 'required|string',
-                'size' => 'required|string',
-                'link' => 'required|string',
+            $validate = Validator::make($request->all(), [
+                'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
+                'area_id' => 'required|integer|exists:areas,id',
+                'name' => 'required|string|max:255',
+                'size' => 'required|string|max:255',
             ]);
 
-            $brunch_id = qtap_clients_brunchs::find($data['brunch_id']);
-            if (!$brunch_id) {
+            if ($validate->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'brunch not found'
+                    'message' => $validate->errors()
                 ]);
             }
 
 
-            $area_id = area::find($data['area_id']);
-            if (!$area_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'area not found'
-                ]);
-            }
+            // إنشاء السجل
+            $table = tables::create($request->only(['brunch_id', 'area_id', 'name', 'size']));
 
+            
+            // توليد الرابط وإضافته
+            $link = env('APP_URL') . '/api/menu_by_table/' . $table->id . '/' . $table->brunch_id;
 
+            $table->update(['link' => $link]);
 
-            $table = tables::create($data);
             return response()->json([
                 'success' => true,
                 'table' => $table
@@ -70,6 +66,7 @@ class TablesController extends Controller
             ]);
         }
     }
+
 
 
 

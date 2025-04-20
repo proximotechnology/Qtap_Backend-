@@ -14,4 +14,14 @@ class restaurant_staff extends Model
         'role_id',
         'brunch_id',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(role::class);
+    }
 }

@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 
 
 use App\Mail\active_account;
+use App\Models\orders;
 use Illuminate\Support\Facades\Mail;
 
 use Carbon\Carbon;
@@ -69,8 +70,9 @@ class QtapAdminsController extends Controller
         }
 
         // استعلام للحصول على عدد الأفرع وقيمة الأرباح لكل شهر في السنة المحددة
-        $branchesPerMonth = Revenue::  // تأكد من أن العلاقة بين "qtap_clients_brunchs" و "revenue" مهيأة
-            selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(value) as total_revenue') // جمع الأرباح
+        // تأكد من أن العلاقة بين "qtap_clients_brunchs" و "revenue" مهيأة
+        
+        $branchesPerMonth = Revenue::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(value) as total_revenue') // جمع الأرباح
             ->whereYear('created_at', $year) // استخدام السنة المدخلة
             ->groupBy('year', 'month')
             ->orderBy('month', 'asc')
@@ -204,7 +206,12 @@ class QtapAdminsController extends Controller
             ];
         }
 
-        return response()->json($weeks);
+        return response()->json([
+            'success' => true,
+            'data' => $weeks,
+            'total_revenue' => array_sum(array_column($weeks, 'total_revenue')),
+
+        ]);
     }
 
 
@@ -270,7 +277,7 @@ class QtapAdminsController extends Controller
         //---------------Total Orders chart------------------------------------------------------
 
 
-        $branchesPerMonth = \App\Models\qtap_clients_brunchs::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(id) as total_branches')
+        $branchesPerMonth = orders::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(id) as total_branches')
             ->whereYear('created_at', date('Y')) // استعلام فقط للسنة الحالية
             ->groupBy('year', 'month')
             ->orderBy('month', 'asc')
@@ -327,6 +334,7 @@ class QtapAdminsController extends Controller
             "Clients_Log" => $Clients_Log,
             "Client" => $Client,
             "Total_Orders" => $branchesPerMonthWithAllMonths,
+            'total_orders' => $branchesPerMonthWithAllMonths->sum('total_order'),
             "Affiliate_Users" => $Affiliate_Users,
             // "clients_active" => $clients_active,
             // "qtap_clients_brunchs" => $qtap_clients_brunchs,
@@ -353,9 +361,13 @@ class QtapAdminsController extends Controller
         return response()->json([
             "success" => true,
             "Revenue" => $Revenue,
+            "Revenue_Percentage" => 10 . '%',
             "Expenses" => 0,
+            "Expenses_Percentage" => 0 . '%',
             "Withdrawal" => 0,
-            "Balance" => 0,
+            "Withdrawal_Percentage" => 0 . '%',
+            "Balance" => $Revenue,
+            "Balance_Percentage" => 10 . '%',
         ]);
     }
 

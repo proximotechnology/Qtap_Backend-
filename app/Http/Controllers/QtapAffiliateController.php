@@ -4,10 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\qtap_affiliate;
 use App\Models\affiliate_payment_info;
+use App\Models\affiliate_Revenues;
 use App\Models\affiliate_transactions;
+use App\Models\affiliate_clicks;
+use App\Models\qtap_clients_brunchs;
 use GuzzleHttp\Promise\Create;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
+
+use Illuminate\Support\Facades\Validator;
 
 use Illuminate\Support\Facades\Hash;
 
@@ -28,12 +34,40 @@ class QtapAffiliateController extends Controller
     }
 
 
+
+    private function generateAffiliateCode($length = 8)
+    {
+        $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        $code = '';
+        for ($i = 0; $i < $length; $i++) {
+            $code .= $characters[rand(0, strlen($characters) - 1)];
+        }
+        return $code;
+    }
+
+
+
+    public function get_myinfo()
+    {
+        $user = auth()->user();
+        $affiliate = qtap_affiliate::with('payment_info')->withCount('clicks_count')->find($user->id);
+
+        return response()->json([
+            'success' => true,
+            'affiliate' => $affiliate
+        ]);
+    }
+
     public function store(Request $request)
     {
         try {
+
+
             qtap_affiliate::where('email', $request->email)->where('status', 'inactive')->delete();
 
-            $validatedData = $request->validate([
+            $affiliate_code = $this->generateAffiliateCode();
+
+            $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'mobile' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:qtap_affiliates,email',
@@ -44,8 +78,20 @@ class QtapAffiliateController extends Controller
                 'payment_way' => 'nullable|in:bank_account,wallet,credit_card',
             ]);
 
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            $validatedData = $request->all();
+
+
+            $link =  $affiliate_code;
+
 
             $validatedData['password'] = Hash::make($validatedData['password']);
+
+            $validatedData['code'] = $link;
+
             $affiliate = qtap_affiliate::create($validatedData);
 
 
@@ -53,12 +99,16 @@ class QtapAffiliateController extends Controller
 
             $paymentInfo_data['affiliate_id'] = $affiliate->id;
 
-            $paymentInfo = affiliate_payment_info::create($paymentInfo_data);
+            if ($request['payment_way']) {
+
+                $paymentInfo = affiliate_payment_info::create($paymentInfo_data);
+            }
 
 
 
 
-            return response()->json(['status' => 'success', 'message' => 'تمت الإضافة بنجاح.', 'data' => compact('affiliate', 'paymentInfo')], 201);
+
+            return response()->json(['status' => 'success', 'message' => 'تمت الإضافة بنجاح.', 'data' => compact('affiliate')], 201);
         } catch (ValidationException $e) {
             return response()->json(['status' => 'error', 'message' => 'بيانات غير صحيحة.', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
@@ -68,7 +118,8 @@ class QtapAffiliateController extends Controller
 
 
 
-    public function affiliate_transactions(){
+    public function affiliate_transactions()
+    {
 
         $transactions = affiliate_transactions::with('affiliate')->where('created_at', '>=', now()->subDays(30))->orderBy('created_at', 'desc')->get();
 
@@ -77,6 +128,78 @@ class QtapAffiliateController extends Controller
             'transactions' => $transactions
         ]);
     }
+
+
+
+
+    public function affiliate_Revenues($year)
+    {
+        // عدد المستخدمين حسب السنة
+        $users = affiliate_Revenues::whereYear('created_at', $year)->count();
+
+        // الإيرادات حسب الأشهر
+        $monthlyRevenues = affiliate_Revenues::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(value_order) as total_revenue')
+            ->whereYear('created_at', $year)
+            ->groupBy('year', 'month')
+            ->orderBy('month', 'asc')
+            ->get()
+            ->keyBy('month');
+
+        // عدد المستخدمين حسب الأشهر
+        $monthlyUsers = qtap_clients_brunchs::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(id) as users_count')
+            ->whereYear('created_at', $year)
+            ->groupBy('year', 'month')
+            ->orderBy('month', 'asc')
+            ->get()
+            ->keyBy('month');
+
+        // أسماء الأشهر
+        $allMonths = collect([
+            1 => 'يناير',
+            2 => 'فبراير',
+            3 => 'مارس',
+            4 => 'أبريل',
+            5 => 'مايو',
+            6 => 'يونيو',
+            7 => 'يوليو',
+            8 => 'أغسطس',
+            9 => 'سبتمبر',
+            10 => 'أكتوبر',
+            11 => 'نوفمبر',
+            12 => 'ديسمبر'
+        ]);
+
+        // الإيرادات لكل شهر
+        $revenuePerMonth = $allMonths->map(function ($monthName, $monthNumber) use ($monthlyRevenues) {
+            $data = $monthlyRevenues->get($monthNumber);
+            return [
+                'month_name' => $monthName,
+                'total_revenue' => $data ? $data->total_revenue : 0
+            ];
+        });
+
+        // عدد المستخدمين لكل شهر
+        $usersPerMonth = $allMonths->map(function ($monthName, $monthNumber) use ($monthlyUsers) {
+            $data = $monthlyUsers->get($monthNumber);
+            return [
+                'month_name' => $monthName,
+                'users_count' => $data ? $data->users_count : 0
+            ];
+        });
+
+        // مجموع الإيرادات السنوية
+        $totalYearlyRevenue = $revenuePerMonth->sum('total_revenue');
+
+        return response()->json([
+            'success' => true,
+            'users' => $users,
+            'users_count_by_year' => $usersPerMonth,
+            'branchesPerMonthWithAllMonths' => $revenuePerMonth,
+            'totalYearlyRevenue' => $totalYearlyRevenue
+        ]);
+    }
+
+
 
 
     public function update(Request $request, $id)
@@ -152,6 +275,143 @@ class QtapAffiliateController extends Controller
         }
     }
 
+
+    // داخل موديل affiliate_clicks
+
+
+    public function Sales_clicks($year)
+    {
+
+
+
+
+        // الحصول على عدد النقرات في كل شهر من السنة المحددة
+        $monthlyClicks = affiliate_clicks::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(id) as clicks_count')
+            ->whereYear('created_at', $year)
+            ->groupBy('year', 'month')
+            ->orderBy('month', 'asc')
+            ->get()
+            ->keyBy('month');
+
+        // تعريف أسماء الشهور
+        $allMonths = collect([
+            1 => 'January',
+            2 => 'February',
+            3 => 'March',
+            4 => 'April',
+            5 => 'May',
+            6 => 'June',
+            7 => 'July',
+            8 => 'August',
+            9 => 'September',
+            10 => 'October',
+            11 => 'November',
+            12 => 'December',
+        ]);
+
+        // بناء مصفوفة بعدد النقرات لكل شهر
+        $clicksPerMonth = $allMonths->map(function ($monthName, $monthNumber) use ($monthlyClicks) {
+            $data = $monthlyClicks->get($monthNumber);
+            return [
+                'month_name' => $monthName,
+                'clicks_count' => $data ? $data->clicks_count : 0,
+            ];
+        })->values();
+
+
+
+
+
+
+
+
+
+        // الحصول على عدد المستخدمين الجدد في كل شهر من السنة المحددة
+        $monthlyUsers = qtap_clients_brunchs::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(id) as users_count')
+            ->whereYear('created_at', $year)
+            ->groupBy('year', 'month')
+            ->orderBy('month', 'asc')
+            ->get()
+            ->keyBy('month');
+
+        // تعريف أسماء الشهور
+        $allMonths = collect([
+            1 => 'January',
+            2 => 'February',
+            3 => 'March',
+            4 => 'April',
+            5 => 'May',
+            6 => 'June',
+            7 => 'July',
+            8 => 'August',
+            9 => 'September',
+            10 => 'October',
+            11 => 'November',
+            12 => 'December',
+        ]);
+
+        // بناء مصفوفة بعدد المستخدمين لكل شهر
+        $usersPerMonth = $allMonths->map(function ($monthName, $monthNumber) use ($monthlyUsers) {
+            $data = $monthlyUsers->get($monthNumber);
+            return [
+                'month_name' => $monthName,
+                'users_count' => $data ? $data->users_count : 0,
+            ];
+        })->values();
+
+        return response()->json([
+            'year' => $year,
+            'users_count_by_month' => $usersPerMonth,
+            'clicksPerMonth' => $clicksPerMonth,
+        ]);
+    }
+
+
+
+    public function get_sales_affiliate()
+    {
+        $userId = auth()->id();
+        $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+
+        // عدد المبيعات
+        $todaySalesCount = affiliate_Revenues::where('affiliate_id', $userId)
+            ->whereDate('created_at', $today)
+            ->count();
+
+        $yesterdaySalesCount = affiliate_Revenues::where('affiliate_id', $userId)
+            ->whereDate('created_at', $yesterday)
+            ->count();
+
+        // مجموع الأرباح
+        $todaySalesAmount = affiliate_Revenues::where('affiliate_id', $userId)
+            ->whereDate('created_at', $today)
+            ->sum('amount');
+
+        $yesterdaySalesAmount = affiliate_Revenues::where('affiliate_id', $userId)
+            ->whereDate('created_at', $yesterday)
+            ->sum('amount');
+
+        // حساب النسب (مع الحماية من القسمة على صفر)
+        $salesCountChange = $yesterdaySalesCount > 0
+            ? round((($todaySalesCount - $yesterdaySalesCount) / $yesterdaySalesCount) * 100, 2)
+            : 0;
+
+        $salesAmountChange = $yesterdaySalesAmount > 0
+            ? round((($todaySalesAmount - $yesterdaySalesAmount) / $yesterdaySalesAmount) * 100, 2)
+            : 0;
+
+        return response()->json([
+            'success' => true,
+            'salesCount' => $todaySalesCount,
+            'salesCountYesterday' => $yesterdaySalesCount,
+            'salesCountChangePercent' => $salesCountChange, // ممكن تكون null لو ما فيه بيانات أمس
+            'notes' => 'النسبة صفر يعني لا يوجد ارتفاع او انخفاض  في الطلبات او الارباح',
+            'salesAmount' => $todaySalesAmount,
+            'salesAmountYesterday' => $yesterdaySalesAmount,
+            'salesAmountChangePercent' => $salesAmountChange, // ممكن تكون null لو ما فيه بيانات أمس
+        ]);
+    }
 
 
 

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('phone');
             $table->string('pin');
-            $table->double('orders');
+            $table->double('orders')->default(0);
             $table->enum('status', ['Available', 'Busy']);
             $table->timestamps();
         });

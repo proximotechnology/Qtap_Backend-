@@ -7,11 +7,20 @@ use App\Models\qtap_affiliate;
 use App\Models\clients_logs;
 use App\Models\User;
 use App\Models\qtap_clients_brunchs;
+use App\Models\restaurant_user_staff;
 use App\Models\qtap_clients;
+use App\Models\restaurant_staff;
+use App\Models\restaurant_users;
+use App\Models\users_logs;
+use App\Models\affiliate_log;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
+
+use Illuminate\Support\Str;
+
+
 
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Hash;
@@ -77,6 +86,11 @@ class AuthController extends Controller
             } elseif ($request->user_type === 'qtap_clients') {
                 $user = qtap_clients::create($data);
             } elseif ($request->user_type === 'qtap_affiliates') {
+
+
+                // $data['code'] = strtoupper(Str::random(8));
+
+
                 $user = qtap_affiliate::create($data);
             } else {
                 throw new \Exception("نوع المستخدم غير صالح.");
@@ -119,11 +133,13 @@ class AuthController extends Controller
     public function login(Request $request)
     {
 
-        // dd('kk');
+
 
         $validator = Validator::make($request->all(), ([
             'email' => 'required|string|email',
             'password' => 'required|string',
+            'pin' => 'sometimes|string',
+            'brunch_id' => 'sometimes|integer|exists:qtap_clients_brunchs,id',
             'user_type' => 'required|in:qtap_admins,qtap_clients,qtap_affiliates',
         ]));
 
@@ -132,70 +148,83 @@ class AuthController extends Controller
         }
 
 
+        if ($request->user_type != 'qtap_clients') {
+            // dd($request->all());
 
-        $credentials = $request->only('email', 'password', 'user_type');
-        $user = null;
+            $credentials = $request->only('email', 'password',  'user_type');  // التحقق من الـ email و password
+            $user = null;
+
+            if ($token = Auth::guard('qtap_admins')->attempt($credentials)) {
+
+                $user = Auth::guard('qtap_admins')->user();
+
+                // dd($user);
+
+                if ($user) {
+                    return response()->json([
+                        'token' => $token,
+                        'user' => $user,
+                    ]);
+                }
+            } elseif ($token = Auth::guard('qtap_affiliate')->attempt($credentials)) {
+
+                $user = Auth::guard('qtap_affiliate')->user();
+
+                if ($user->status !== 'active') {
+                    return response()->json(['error' => 'User is not active'], 401);
+                }
 
 
-        if ($token = Auth::guard('qtap_admins')->attempt($credentials)) {
-
-            $user = Auth::guard('qtap_admins')->user();
-
-
-
-            if ($user) {
-                return response()->json([
-                    'token' => $token,
-                    'user' => $user,
+                affiliate_log::create([
+                    'affiliate_id' => $user->id,
+                    'status' => 'active',
                 ]);
-            }
-        } elseif ($token = Auth::guard('qtap_clients')->attempt($credentials)) {
 
 
-
-            $user = Auth::guard('qtap_clients')->user();
-            $brunches = qtap_clients_brunchs::where('client_id', $user->id)->get();
-
-            if ($user->status !== 'active') {
-                return response()->json(['error' => 'User is not active'], 401);
-            }
-
-
-            clients_logs::create([
-                'client_id' => $user->id,
-                'action' => 'active',
-            ]);
-
-
-            if ($user) {
-                return response()->json([
-                    'token' => $token,
-                    'user' => $user,
-                    'brunches' => $brunches,
-                ]);
-            }
-        } elseif ($token = Auth::guard('qtap_affiliate')->attempt($credentials)) {
-
-            $user = Auth::guard('qtap_affiliate')->user();
-
-            if ($user->status !== 'active') {
-                return response()->json(['error' => 'User is not active'], 401);
-            }
-
-
-            if ($user) {
-                return response()->json([
-                    'token' => $token,
-                    'user' => $user,
-                ]);
+                if ($user) {
+                    return response()->json([
+                        'token' => $token,
+                        'user' => $user,
+                    ]);
+                }
+            } else {
+                return response()->json(['error' => 'Unauthorized'], 401);
             }
         } else {
-            return response()->json(['error' => 'Unauthorized'], 401);
+
+
+            $user =  restaurant_user_staff::where('pin', $request->pin)->where('email', $request->email)
+                ->where('brunch_id', $request->brunch_id)->where('role', $request->role)->where('user_type', $request->user_type)
+                ->first();
+
+
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                return response()->json(['error' => 'Unauthorized - Invalid pin or password or phone'], 401);
+            }
+
+            // إصدار التوكن
+            $token = Auth::guard('restaurant_user_staff')->login($user);
+
+            // تحقق إضافي من رقم الهاتف إذا كان role = delivery_rider
+            if ($user->role == 'delivery_rider' && $request['phone'] && $request['phone'] != $user->phone) {
+                return response()->json(['error' => 'Unauthorized - Invalid phone'], 401);
+            }
+
+            // جلب الفروع وربما إضافتها للرد
+            $brunches = qtap_clients_brunchs::where('client_id', $user->user_id)->get();
+
+            // سجل الدخول في logs
+            users_logs::create([
+                'user_id' => $user->id,
+                'brunch_id' => $user->brunch_id,
+                'status' => 'active',
+            ]);
+
+            return response()->json([
+                'token' => $token,
+                'user' => $user,
+            ]);
         }
-
-
-
-        return response()->json(['error' => 'Unauthorized'], 401);
     }
 
 
@@ -206,11 +235,24 @@ class AuthController extends Controller
 
 
         if (auth()->check()) {
-            // تسجيل السجل عند تسجيل الخروج
-            clients_logs::create([
-                'client_id' => auth()->user()->id,
-                'action' => 'inactive',
-            ]);
+
+
+            if (auth()->user()->user_type == 'qtap_clients') {
+
+                // تسجيل السجل عند تسجيل الخروج
+                users_logs::create([
+                    'user_id' => auth()->user()->id,
+                    'brunch_id' => auth()->user()->brunch_id,
+                    'action' => 'inactive',
+                ]);
+            } else if (auth()->user()->user_type == 'qtap_affiliates') {
+
+                // تسجيل السجل عند تسجيل الخروج
+                affiliate_log::create([
+                    'user_id' => auth()->user()->id,
+                    'action' => 'inactive',
+                ]);
+            }
 
             // إبطال التوكن الحالي (إذا كنت تستخدم JWT)
             JWTAuth::invalidate(JWTAuth::getToken());

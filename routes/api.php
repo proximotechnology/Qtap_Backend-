@@ -33,7 +33,12 @@ use App\Http\Controllers\RestaurantStaffController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\DeliveryRiderController;
 use App\Http\Controllers\DeliveryAreaController;
+use App\Http\Controllers\OrdersController;
+use App\Http\Controllers\RestaurantUserStaffController;
+use App\Http\Controllers\OrdersProcessingController;
 use App\Models\qtap_admins;
+
+use App\Http\Middleware\CheckClient;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,6 +60,8 @@ Route::post('login', [AuthController::class, 'login']);
 //------------------------------------------WEBSITE---------------------------------------
 Route::get('home', [homeController::class, 'index']);
 
+Route::get('home_affiliate/{affiliate_code}', [homeController::class, 'home_affiliate']);
+
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
 
@@ -67,20 +74,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 //-------------------------------------------ADMIN OR CLIENT-------------------------------
 
-Route::middleware('admin_or_client')->group(function () {
-    Route::resource('feedback', FeedbackController::class);
-    Route::resource('ticket', TicketSupportController::class);
-
-
-
-    Route::get('get_client_info/{id}', [QtapClientsController::class, 'get_client_info']);
-    Route::get('get_affiliate_info/{id}', [QtapAffiliateController::class, 'get_affiliate_info']);
-
-
-
-    Route::post('clients_update_profile/{id}', [QtapClientsController::class, 'update_profile']);
-    Route::post('clients_update_menu/{id}', [QtapAffiliateController::class, 'update_menu']);
-});
+Route::middleware('admin_or_client')->group(function () {});
 
 //-------------------------------------------ADMIN OR AFFILIATE-----------------------------
 
@@ -101,6 +95,16 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
 
 
+
+
+
+
+    Route::get('feedback_client', [FeedbackController::class, 'index']);
+    Route::put('feedback_client/{id}', [FeedbackController::class, 'update']);
+
+
+    Route::get('ticket_client', [TicketSupportController::class, 'index']);
+    Route::put('ticket_client/{id}', [TicketSupportController::class, 'update']);
 
 
     //--------------------------------------------------------------------------------------------
@@ -168,6 +172,10 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
     Route::get('affiliate_transactions', [QtapAffiliateController::class, 'affiliate_transactions'])->name('affiliate_transactions');
 
+    Route::get('affiliate_Revenues/{year}', [QtapAffiliateController::class, 'affiliate_Revenues'])->name('affiliate_Revenues');
+
+
+
 
 
 
@@ -223,28 +231,190 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
 //------------------------------------------------PUBLIC API------------------------------------------------------------
 
+//------------get_brunchs-----------------
+Route::get('get_brunchs', [QtapClientsController::class, 'get_brunchs']);
+
 //-------------chat--------
 Route::resource('chat', ChatController::class);
+
+//-------------customer_info- for chat-------
 Route::post('customer_info', [CustomerInfoController::class, 'store']);
 
+//-------------orders--------
+Route::post('add_orders', [OrdersController::class, 'store'])->name('add_orders');
 
-Route::post('add_affiliate', [QtapAffiliateController::class, 'store'])->name('add_affiliate');
-
-
+//-------------menu--------
 Route::get('menu/{id}', [QtapClientsController::class, 'menu'])->name('menu');
+
+
+Route::get('menu_by_table/{table}/{id}', [QtapClientsController::class, 'menu_by_table'])->name('menu_by_table');
+
+
+
+//-------------add_affiliate--------
+Route::post('add_affiliate', [QtapAffiliateController::class, 'store'])->name('add_affiliate');
+Route::get('Sales_clicks/{year}', [QtapAffiliateController::class, 'Sales_clicks'])->name('Sales_clicks');
+
+
+
+Route::middleware(['auth:restaurant_user_staff', 'role:chef'])->group(function () {
+    Route::get('/kitchen/orders', function () {
+        return response()->json(['message' => 'Welcome admin Staff!']);
+    });
+});
+
 
 
 
 
 //------------------CLIENT -------------------
-Route::middleware('auth:qtap_clients')->group(function () {
+// Route::middleware('auth:qtap_clients')->group(function () {
+Route::middleware('auth:restaurant_user_staff', 'role:chef')->group(function () {
 
 
-        //----------------------Deliver---------------------------------------------------------------
-        Route::resource('delivery', DeliveryRiderController::class);
+    Route::post('accept_order', [OrdersProcessingController::class, 'accept_order']);
+    Route::get('get_new_orders', [OrdersProcessingController::class, 'get_new_orders']);
+    Route::post('order_prepared', [OrdersProcessingController::class, 'order_prepared']);
+});
 
 
-        Route::resource('delivery_area', DeliveryAreaController::class);
+Route::middleware('auth:restaurant_user_staff', 'role:cashier')->group(function () {
+
+    Route::post('payment_received', [OrdersProcessingController::class, 'payment_received']);
+    Route::get('get_accepted_orders', [OrdersProcessingController::class, 'get_accepted_orders']);
+});
+
+
+Route::middleware('auth:restaurant_user_staff', 'role:waiter')->group(function () {
+
+    Route::post('order_served', [OrdersProcessingController::class, 'order_served']);
+    Route::get('get_prepared_orders', [OrdersProcessingController::class, 'get_prepared_orders']);
+});
+
+
+
+
+Route::middleware('auth:restaurant_user_staff', 'role:delivery_rider')->group(function () {
+
+    Route::post('order_delivered', [OrdersProcessingController::class, 'order_delivered']);
+    Route::get('get_prepared_orders_delivery', [OrdersProcessingController::class, 'get_prepared_orders_delivery']);
+
+    Route::post('update_delivery_status', [DeliveryRiderController::class, 'update'])->name('update_delivery_status');
+});
+
+
+Route::middleware(['auth:restaurant_user_staff', 'admin_or_delivery_rider'])->group(function () {
+
+    Route::get('Total_Delivered_Orders/{id}', [DeliveryRiderController::class, 'Total_Delivered_Orders']);
+    Route::get('Daily_Delivered_Orders/{id}', [DeliveryRiderController::class, 'Daily_Delivered_Orders']);
+    Route::get('Daily_Cancaled_Orders/{id}', [DeliveryRiderController::class, 'Daily_Cancaled_Orders']);
+
+
+    Route::post('orders', [DeliveryRiderController::class, 'orders']);
+});
+
+
+Route::get('order_map/{order_id}', [OrdersProcessingController::class, 'order_map']);
+
+
+Route::middleware('auth:restaurant_user_staff', 'role:admin|cashier')->group(function () {
+
+
+    Route::resource('meals_categories', MealsCategoriesController::class);
+
+    Route::resource('meals_discount', MealsDiscountController::class);
+
+    Route::post('meals/{id}', [MealsController::class, 'update']);
+    Route::resource('meals', MealsController::class);
+
+    Route::resource('meals_size', MealsSizeController::class);
+    Route::resource('meals_variants', MealsVariantsController::class);
+    Route::resource('meals_extra', MealsExtraController::class);
+
+
+    Route::resource('meals_special_offers', MealsSpecialOffersController::class);
+});
+
+
+
+Route::middleware('auth:restaurant_user_staff', 'role:admin')->group(function () {
+
+
+    Route::get('get_client_info/{id}', [QtapClientsController::class, 'get_client_info']);
+    Route::get('get_affiliate_info/{id}', [QtapAffiliateController::class, 'get_affiliate_info']);
+
+
+
+    Route::post('clients_update_profile/{id}', [QtapClientsController::class, 'update_profile']);
+    Route::post('clients_update_menu/{id}', [QtapClientsController::class, 'update_menu']);
+
+    Route::get('ticket', [TicketSupportController::class, 'index']);
+    Route::post('ticket/{id}', [TicketSupportController::class, 'update']);
+    Route::delete('ticket/{id}', [TicketSupportController::class, 'destroy']);
+    Route::post('ticket', [TicketSupportController::class, 'store']);
+
+
+    Route::get('feedback', [FeedbackController::class, 'index']);
+    Route::post('feedback/{id}', [FeedbackController::class, 'update']);
+    Route::delete('feedback/{id}', [FeedbackController::class, 'destroy']);
+    Route::post('feedback', [FeedbackController::class, 'store']);
+
+
+
+
+    //-----------------------------------------------------------------------------
+
+
+    Route::post('order_done', [OrdersProcessingController::class, 'order_done']);
+
+    Route::get('get_served_orders', [OrdersProcessingController::class, 'get_served_orders']);
+    Route::get('get_delivery_available', [DeliveryRiderController::class, 'get_delivery_available']);
+
+    Route::post('get_delivered_orders', [OrdersProcessingController::class, 'get_delivered_orders']);
+
+    Route::post('choose_delivery', [OrdersProcessingController::class, 'choose_delivery']);
+
+
+
+
+
+    //----------------------Deliver---------------------------------------------------------------
+    Route::resource('delivery', DeliveryRiderController::class);
+
+
+    //-----------------------dashboard--------------------------
+    Route::get('dashboard/{id}', [QtapClientsController::class, 'dashboard']);
+
+    Route::post('Sales_restaurant/{id}', [QtapClientsController::class, 'Sales_restaurant'])->name('Sales_restaurant');
+    Route::get('wallet_restaurant/{id}/{year}', [QtapClientsController::class, 'wallet_restaurant'])->name('wallet_restaurant');
+    Route::post('Sales_by_days_restaurant/{id}', [QtapClientsController::class, 'Sales_by_days_restaurant'])->name('Sales_by_days_restaurant');
+
+    Route::get('Customer_log/{id}/{year1}/{year2}', [QtapClientsController::class, 'Customer_log'])->name('Customer_log');
+
+    //----------------------RestaurantUserStaff---------------------------------------------------------------
+
+    Route::get('restaurant_user_staff/{brunch_id}', [RestaurantUserStaffController::class, 'index']);
+
+    Route::get('resturant_users/{brunch_id}', [RestaurantUserStaffController::class, 'resturant_users']);
+
+    Route::put('restaurant_user_staff/{id}', [RestaurantUserStaffController::class, 'update']);
+
+    Route::put('link_user_role/{id}', [RestaurantUserStaffController::class, 'link_user_role']);
+
+    Route::delete('restaurant_user_staff/{id}', [RestaurantUserStaffController::class, 'destroy']);
+    Route::post('restaurant_user_staff', [RestaurantUserStaffController::class, 'store']);
+
+
+
+
+
+    //----------------------Orders---------------------------------------------------------------
+    Route::get('orders/{id}', [OrdersController::class, 'index'])->name('orders');
+
+
+
+
+    Route::resource('delivery_area', DeliveryAreaController::class);
 
     Route::post('logout', [AuthController::class, 'logout']);
 
@@ -268,18 +438,6 @@ Route::middleware('auth:qtap_clients')->group(function () {
 
 
 
-    Route::resource('meals_categories', MealsCategoriesController::class);
-
-    Route::resource('meals_discount', MealsDiscountController::class);
-
-    Route::post('meals/{id}', [MealsController::class, 'update']);
-    Route::resource('meals', MealsController::class);
-
-    Route::resource('meals_size', MealsSizeController::class);
-    Route::resource('meals_special_offers', MealsSpecialOffersController::class);
-    Route::resource('meals_variants', MealsVariantsController::class);
-    Route::resource('meals_extra', MealsExtraController::class);
-
 
 
 
@@ -298,7 +456,11 @@ Route::post('add_qtap_affiliate', [QtapAffiliateController::class, 'store']);
 
 
 //------------------affiliate-----------------
-Route::middleware('auth:qtap_affiliate')->group(function () {});
+Route::middleware('auth:qtap_affiliate')->group(function () {
+
+    Route::get('get_sales_affiliate', [QtapAffiliateController::class, 'get_sales_affiliate'])->name('get_sales_affiliate');
+    Route::get('get_myinfo', [QtapAffiliateController::class, 'get_myinfo'])->name('get_myinfo');
+});
 
 
 //------------------add qtap_clients--------

@@ -17,14 +17,13 @@ return new class extends Migration
             $table->unsignedBigInteger('affiliate_id');
             $table->foreign('affiliate_id')->references('id')->on('qtap_affiliates')->onDelete('cascade');
 
-            $table->unsignedBigInteger('brunch_id');
-            $table->foreign('brunch_id')->references('id')->on('qtap_clients_brunchs')->onDelete('cascade');
+
 
             $table->double('amount');
 
             $table->double('Reverence_no')->nullable();
             $table->enum('status', ['pending', 'Done', 'failed'])->default('pending');
-            
+
             $table->timestamps();
         });
     }

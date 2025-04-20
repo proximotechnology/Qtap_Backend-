@@ -30,8 +30,19 @@ class qtap_clients_brunchs extends Model
         'call_waiter',
         'status',
         'order_id',
+        'affiliate_code',
     ];
 
+    public function client(){
+
+        return $this->belongsTo(qtap_clients::class , 'client_id' , 'id');
+    }
+
+
+    public function role(){
+
+        return $this->hasMany(role::class ,  'brunch_id', 'id')->select('id' , 'name' , 'brunch_id');
+    }
 
     public function pricing(){
         return $this->belongsTo(pricing::class , 'pricing_id' , 'id');

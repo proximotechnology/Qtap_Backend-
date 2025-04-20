@@ -21,6 +21,7 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+
     ];
 
     /**
@@ -69,7 +70,12 @@ class Kernel extends HttpKernel
     protected $routeMiddleware = [
         // ...
         'admin_or_client' => \App\Http\Middleware\AdminOrClientMiddleware::class,
-        'admin_or_affiliate' => \App\Http\Middleware\AdminOrAffiliateMiddleware::class
+        'admin_or_affiliate' => \App\Http\Middleware\AdminOrAffiliateMiddleware::class,
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
+        'admin_or_delivery_rider' => \App\Http\Middleware\AdminOrDeliveryRider::class,
+
+        'client' => \App\Http\Middleware\CheckClient::class
+
 
     ];
 
