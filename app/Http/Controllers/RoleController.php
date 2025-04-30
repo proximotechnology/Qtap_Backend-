@@ -22,7 +22,14 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:roles',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('roles')->where(function ($query) use ($request) {
+                    return $query->where('brunch_id', $request->brunch_id);
+                }),
+            ],
             'menu' => 'required|boolean',
             'users' => 'required|boolean',
             'orders' => 'required|boolean',

@@ -24,8 +24,11 @@ class restaurant_user_staff  extends Authenticatable implements JWTSubject
         'user_type',
         'role_id',
         'role',
+        'delivery_areas_id',
         'brunch_id',
         'phone',
+        'status_rider',
+        'status',
         'orders'
     ];
 

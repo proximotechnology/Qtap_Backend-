@@ -14,15 +14,20 @@ class orders_processing extends Model
         'user_id',
         'brunch_id',
         'status',
+        'time',
         'stage',
         'delivery_rider_id',
         'note'
     ];
 
+
+
     public function user()
     {
-        return $this->belongsTo(restaurant_user_staff::class, 'id', 'user_id');
+        return $this->belongsTo(restaurant_user_staff::class, 'user_id', 'id');
     }
+
+
 
     public function order()
     {

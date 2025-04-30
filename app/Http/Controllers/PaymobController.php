@@ -275,9 +275,14 @@ class PaymobController extends Controller
 
             $payment_data = setting_payment::first();
 
+
             if (!$payment_data) {
-                return response()->json(['error' => 'Payment data not found'], 404);
+                return [
+                    'status' => 'error',
+                    'message' => 'Payment data not found'
+                ];
             }
+
 
             $API_KEY = $payment_data->API_KEY;
             $IFRAME_ID = $payment_data->IFRAME_ID;
@@ -422,6 +427,7 @@ class PaymobController extends Controller
 
             $paymentToken = $paymentResponse->object()->token;
             $paymentUrl = 'https://accept.paymob.com/api/acceptance/iframes/' .  $IFRAME_ID . '?payment_token=' . $paymentToken;
+
 
             // Return payment result or redirect
             return ['status' => 'success', 'payment_url' => $paymentUrl];

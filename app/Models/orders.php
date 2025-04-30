@@ -4,6 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
+
+
+use App\Models\meals;
 
 class orders extends Model
 {
@@ -35,11 +39,86 @@ class orders extends Model
     ];
 
 
-    public function orders_processing(){
-        return $this->hasMany(orders_processing::class , 'order_id');
+    public function orders_processing()
+    {
+        return $this->hasMany(orders_processing::class, 'order_id');
     }
 
-    public function meal(){
-        return $this->belongsTo(meals::class , 'meal_id' , 'id');
+
+    public function meal()
+    {
+        return meals::whereIn('id', json_decode($this->meal_id))->get();
+    }
+
+
+    public function varian()
+    {
+        return meals_variants::whereIn('id', json_decode($this->variants))->get();
+    }
+
+
+    protected $appends = ['meals', 'variants', 'extras'];
+
+
+
+    public function getMealsAttribute()
+    {
+        $ids = json_decode($this->meal_id, true);
+
+        if (is_array($ids) && count($ids) > 0) {
+            return meals::whereIn('id', $ids)->get();
+        }
+
+        return [];
+    }
+
+
+    public function getVariantsAttribute()
+    {
+        $variants = $this->attributes['variants'] ?? '[]'; // خذ القيمة الأصلية مش المعدلة
+
+        if (is_array($variants)) {
+            $ids = $variants; // لو مصفوفة جاهزة، استخدمها كما هي
+        } else {
+            $ids = json_decode($variants, true); // لو نص، فك التشفير
+        }
+
+        if (is_array($ids) && count($ids) > 0) {
+            $ids = Arr::flatten($ids); // تسطيح المصفوفة هنا قبل whereIn
+            return meals_variants::whereIn('id', $ids)->get();
+        }
+
+        return [];
+    }
+
+    public function getExtrasAttribute()
+{
+    $extras = $this->attributes['extras'] ?? '[]'; // خذ القيمة الأصلية مش المعدلة
+
+    if (is_array($extras)) {
+        $ids = $extras; // لو مصفوفة جاهزة، استخدمها كما هي
+    } else {
+        $ids = json_decode($extras, true); // لو نص، فك التشفير
+    }
+
+    if (is_array($ids) && count($ids) > 0) {
+        $ids = Arr::flatten($ids); // تسطيح المصفوفة هنا قبل whereIn
+        return meals_extra::whereIn('id', $ids)->get(); // هنا ضع اسم الموديل المناسب لـ extras
+    }
+
+    return [];
+}
+
+
+
+
+
+
+
+
+    public function orders_process()
+    {
+
+        return $this->hasMany(orders_processing::class, 'id', 'order_id');
     }
 }

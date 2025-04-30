@@ -84,7 +84,7 @@ Route::middleware('admin_or_affiliate')->group(function () {
 
 Route::get('pricing', [PricingController::class, 'index'])->name('pricing');
 
-Route::get('discount', [DiscountController::class, 'index']);
+
 
 
 
@@ -94,7 +94,11 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
 
 
+    // Route::get('discount', [DiscountController::class, 'index']);
 
+
+    Route::get('get_client_info/{id}', [QtapClientsController::class, 'get_client_info']);
+    Route::get('get_affiliate_info/{id}', [QtapAffiliateController::class, 'get_affiliate_info']);
 
 
 
@@ -134,7 +138,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
     //-------------clinet--------
     Route::delete('qtap_clients/{id}', [QtapClientsController::class, 'destroy']);
-    Route::post('qtap_clients/{id}', [QtapClientsController::class, 'update']);
+
 
 
     //-------------website--------
@@ -156,9 +160,14 @@ Route::middleware('auth:qtap_admins')->group(function () {
     //-------------dashboard--------
     Route::resource('note', NoteController::class);
     Route::resource('currency', CurrencyController::class);
-    Route::resource('products', ProductsController::class);
+
+    // Route::resource('products', ProductsController::class);
+
     Route::resource('campaigns', CampaignsController::class);
-    Route::post('products/update/{products}', [ProductsController::class, 'update']);
+
+    Route::post('products', [ProductsController::class, 'store']);
+    Route::post('products/{id}', [ProductsController::class, 'update']);
+    Route::delete('products/{id}', [ProductsController::class, 'destroy']);
 
 
     Route::post('dashboard', [QtapAdminsController::class, 'dashboard'])->name('dashboard');
@@ -225,11 +234,10 @@ Route::middleware('auth:qtap_admins')->group(function () {
 });
 
 
-
-
-
-
 //------------------------------------------------PUBLIC API------------------------------------------------------------
+Route::get('products', [ProductsController::class, 'index']);
+Route::get('discount', [DiscountController::class, 'index']);
+
 
 //------------get_brunchs-----------------
 Route::get('get_brunchs', [QtapClientsController::class, 'get_brunchs']);
@@ -269,7 +277,7 @@ Route::middleware(['auth:restaurant_user_staff', 'role:chef'])->group(function (
 
 //------------------CLIENT -------------------
 // Route::middleware('auth:qtap_clients')->group(function () {
-Route::middleware('auth:restaurant_user_staff', 'role:chef')->group(function () {
+Route::middleware('auth:restaurant_user_staff', 'role:admin|chef')->group(function () {
 
 
     Route::post('accept_order', [OrdersProcessingController::class, 'accept_order']);
@@ -278,14 +286,14 @@ Route::middleware('auth:restaurant_user_staff', 'role:chef')->group(function () 
 });
 
 
-Route::middleware('auth:restaurant_user_staff', 'role:cashier')->group(function () {
+Route::middleware('auth:restaurant_user_staff', 'role:admin|cashier')->group(function () {
 
     Route::post('payment_received', [OrdersProcessingController::class, 'payment_received']);
     Route::get('get_accepted_orders', [OrdersProcessingController::class, 'get_accepted_orders']);
 });
 
 
-Route::middleware('auth:restaurant_user_staff', 'role:waiter')->group(function () {
+Route::middleware('auth:restaurant_user_staff', 'role:admin|waiter')->group(function () {
 
     Route::post('order_served', [OrdersProcessingController::class, 'order_served']);
     Route::get('get_prepared_orders', [OrdersProcessingController::class, 'get_prepared_orders']);
@@ -297,17 +305,19 @@ Route::middleware('auth:restaurant_user_staff', 'role:waiter')->group(function (
 Route::middleware('auth:restaurant_user_staff', 'role:delivery_rider')->group(function () {
 
     Route::post('order_delivered', [OrdersProcessingController::class, 'order_delivered']);
-    Route::get('get_prepared_orders_delivery', [OrdersProcessingController::class, 'get_prepared_orders_delivery']);
 
     Route::post('update_delivery_status', [DeliveryRiderController::class, 'update'])->name('update_delivery_status');
 });
 
 
-Route::middleware(['auth:restaurant_user_staff', 'admin_or_delivery_rider'])->group(function () {
+Route::middleware(['auth:restaurant_user_staff', 'role:admin|delivery_rider'])->group(function () {
 
     Route::get('Total_Delivered_Orders/{id}', [DeliveryRiderController::class, 'Total_Delivered_Orders']);
     Route::get('Daily_Delivered_Orders/{id}', [DeliveryRiderController::class, 'Daily_Delivered_Orders']);
     Route::get('Daily_Cancaled_Orders/{id}', [DeliveryRiderController::class, 'Daily_Cancaled_Orders']);
+
+    Route::get('get_prepared_orders_delivery', [OrdersProcessingController::class, 'get_prepared_orders_delivery']);
+
 
 
     Route::post('orders', [DeliveryRiderController::class, 'orders']);
@@ -324,7 +334,7 @@ Route::middleware('auth:restaurant_user_staff', 'role:admin|cashier|waiter|deliv
 
 
 Route::middleware('auth:restaurant_user_staff', 'role:admin|cashier')->group(function () {
-
+    Route::resource('tables', TablesController::class);
 
     Route::resource('meals_categories', MealsCategoriesController::class);
 
@@ -346,8 +356,7 @@ Route::middleware('auth:restaurant_user_staff', 'role:admin|cashier')->group(fun
 Route::middleware('auth:restaurant_user_staff', 'role:admin')->group(function () {
 
 
-    Route::get('get_client_info/{id}', [QtapClientsController::class, 'get_client_info']);
-    Route::get('get_affiliate_info/{id}', [QtapAffiliateController::class, 'get_affiliate_info']);
+    Route::post('qtap_clients/{id}', [QtapClientsController::class, 'update']);
 
 
 
@@ -416,6 +425,7 @@ Route::middleware('auth:restaurant_user_staff', 'role:admin')->group(function ()
 
     //----------------------Orders---------------------------------------------------------------
     Route::get('orders/{id}', [OrdersController::class, 'index'])->name('orders');
+    Route::delete('orders/{id}', [OrdersController::class, 'destroy'])->name('orders');
 
 
 
@@ -448,7 +458,7 @@ Route::middleware('auth:restaurant_user_staff', 'role:admin')->group(function ()
 
 
     Route::resource('payment', PaymentController::class);
-    Route::resource('tables', TablesController::class);
+
 
     Route::get('area', [TablesController::class, 'get_area']);
     Route::post('area', [TablesController::class, 'store_area']);

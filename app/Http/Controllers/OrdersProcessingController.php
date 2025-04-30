@@ -6,9 +6,13 @@ use App\Models\orders_processing;
 use App\Models\delivery_rider;
 use App\Models\restaurant_user_staff;
 use App\Models\orders;
+use App\Models\meals;
 use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Validator;
+
+
+use App\Events\notify_msg;
 
 class OrdersProcessingController extends Controller
 {
@@ -35,7 +39,7 @@ class OrdersProcessingController extends Controller
     public function get_proccessing_orders($id)
     {
 
-        $orders = orders_processing::find($id);
+        $orders = orders_processing::with('order')->find($id);
 
         if (!$orders) {
             return response()->json([
@@ -59,6 +63,16 @@ class OrdersProcessingController extends Controller
         $request['brunch_id'] = auth()->user()->brunch_id;
         $request['stage'] = 'chef';
 
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'accepted')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already accepted',
+            ]);
+        }
+
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'user_id' => 'required|exists:restaurant_user_staffs,id',
@@ -78,6 +92,14 @@ class OrdersProcessingController extends Controller
 
         $orders_processing = orders_processing::create($request->all());
 
+        $type = 'accepted_order';
+
+        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        event(new notify_msg($order, $type));
+
+
         return response()->json([
             'success' => true,
             'message' => 'Order accepted successfully',
@@ -94,6 +116,16 @@ class OrdersProcessingController extends Controller
         $request['user_id'] = auth()->user()->id;
         $request['brunch_id'] = auth()->user()->brunch_id;
         $request['stage'] = 'chef';
+
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'prepared')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already prepared',
+            ]);
+        }
 
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
@@ -114,6 +146,14 @@ class OrdersProcessingController extends Controller
 
         $orders_processing = orders_processing::create($request->all());
 
+
+        $type = 'prepared_order';
+
+        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        event(new notify_msg($order, $type));
+
         return response()->json([
             'success' => true,
             'message' => 'Order prepared successfully',
@@ -124,25 +164,23 @@ class OrdersProcessingController extends Controller
 
     public function get_new_orders()
     {
-        // استرجاع الـ brunch_id الخاص بالمستخدم الحالي
         $brunch_id = auth()->user()->brunch_id;
 
-        // استعلام لاسترجاع الطلبات الجديدة التي لم يتم معالجتها بعد
-        $orders = orders::with('meal')
-            ->whereNotIn('id', function ($query) {
-                $query->select('order_id')
-                    ->from('orders_processings');
-            })
+        $orders = orders::whereNotIn('id', function ($query) {
+            $query->select('order_id')
+                ->from('orders_processings');
+        })
             ->where('brunch_id', $brunch_id)
             ->where('status', 'pending')
             ->get();
 
-        // إرجاع الاستجابة
         return response()->json([
             'success' => true,
             'new_orders' => $orders,
         ]);
     }
+
+
 
 
 
@@ -152,6 +190,16 @@ class OrdersProcessingController extends Controller
         $request['user_id'] = auth()->user()->id;
         $request['brunch_id'] = auth()->user()->brunch_id;
         $request['stage'] = 'cashier';
+
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'payment_received')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already payment received',
+            ]);
+        }
 
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
@@ -185,6 +233,14 @@ class OrdersProcessingController extends Controller
 
         $orders_processing = orders_processing::create($request->all());
 
+
+        $type = 'payment_received_order';
+
+        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        event(new notify_msg($order, $type));
+
         return response()->json([
             'success' => true,
             'message' => 'Order payment_received successfully',
@@ -195,13 +251,35 @@ class OrdersProcessingController extends Controller
 
     public function get_accepted_orders()
     {
-
-
         $brunch_id = auth()->user()->brunch_id;
 
-        $orders = orders_processing::with(['order' => function ($query) {
-            $query->where('type', '!=', 'delivery');
-        }])->where('brunch_id', $brunch_id)->where('status', 'prepared')->get();
+
+        // $orders = orders::with('orders_processing')->whereNotIn('id', function ($query) {
+        //     $query->select('order_id')
+        //         ->from('orders_processings')
+        //         ->where('status', 'payment_received');
+        // })->where('brunch_id', $brunch_id)->where('status', 'pending')->get();
+
+
+        $orders = Orders::with('orders_processing')
+            ->where('brunch_id', $brunch_id)
+            ->where('status', 'pending')
+            ->whereHas('orders_processing', function ($query) {
+                $query->where('status', 'accepted');
+            })
+            ->get();
+
+
+
+
+        if ($orders->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No orders dine in or take away found',
+            ]);
+        }
+
+
 
         return response()->json([
             'success' => true,
@@ -211,12 +289,23 @@ class OrdersProcessingController extends Controller
 
 
 
+
     public function order_served(Request $request)
     {
 
         $request['user_id'] = auth()->user()->id;
         $request['brunch_id'] = auth()->user()->brunch_id;
         $request['stage'] = 'waiter';
+
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'served')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already served',
+            ]);
+        }
 
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
@@ -237,6 +326,14 @@ class OrdersProcessingController extends Controller
 
         $orders_processing = orders_processing::create($request->all());
 
+
+        $type = 'served_order';
+
+        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        event(new notify_msg($order, $type));
+
         return response()->json([
             'success' => true,
             'message' => 'Order served successfully',
@@ -252,6 +349,16 @@ class OrdersProcessingController extends Controller
         $request['user_id'] = auth()->user()->id;
         $request['brunch_id'] = auth()->user()->brunch_id;
         $request['stage'] = 'delivery';
+
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'delivery')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already assigned',
+            ]);
+        }
 
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
@@ -273,6 +380,14 @@ class OrdersProcessingController extends Controller
 
         $orders_processing = orders_processing::create($request->all());
 
+
+        $type = 'choose_delivery_order';
+
+        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        event(new notify_msg($order, $type));
+
         return response()->json([
             'success' => true,
             'message' => 'Order assigned successfully',
@@ -286,38 +401,56 @@ class OrdersProcessingController extends Controller
     {
 
         $brunch_id = auth()->user()->brunch_id;
-        $orders = orders_processing::with(['order' => function ($query) {
-            $query->where('type', '!=', 'delivery');
-        }])->where('brunch_id', $brunch_id)->where('status', 'prepared')->get();
 
+        $orders = orders::with('orders_processing')->whereNotIn('id', function ($query) {
+            $query->select('order_id') // افترض أن "order_id" هو العمود الذي يربط بين orders و orders_processings
+                ->from('orders_processings')
+                ->whereIn('status', ['served', 'delivered']);
+        })->where('brunch_id', $brunch_id)->where('status', 'pending')->where('type', '!=', 'delivery')->get();
+
+
+
+
+        if ($orders->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No orders dine in or take away found',
+            ]);
+        }
 
         return response()->json([
             'success' => true,
             'prepared_orders' => $orders,
         ]);
     }
+
 
 
     public function get_prepared_orders_delivery()
     {
         $user = auth()->user();
+        $brunch_id = $user->brunch_id;
 
-        $brunch_id = auth()->user()->brunch_id;
+        // استعلام للبحث عن الطلبات التي ليست في حالات "served" أو "delivered"
+        $orders = orders::with('orders_processing')
+            ->whereNotIn('id', function ($query) {
+                $query->select('order_id') // ربط الطلب بـ order_id في جدول orders_processings
+                    ->from('orders_processings')
+                    ->whereIn('status', ['served', 'delivered']); // التحقق من أن الحالة ليست "served" أو "delivered"
+            })
+            ->where('brunch_id', $brunch_id)
+            ->where('status', 'pending')->where('type', 'delivery')
+            ->get();
 
-        if ($user->status_rider == 'Busy') {
+        // التحقق إذا كانت النتائج فارغة
+        if ($orders->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'You are not available',
+                'message' => 'No orders delivery found',
             ]);
         }
 
-        $orders = orders_processing::with(['order' => function ($query) {
-            $query->where('type', 'delivery');
-        }])->where('brunch_id', $brunch_id)->where('status', 'prepared')->where('delivery_rider_id', auth()->user()->id)->get();
-
-
-
-
+        // إرجاع الطلبات
         return response()->json([
             'success' => true,
             'prepared_orders' => $orders,
@@ -325,10 +458,26 @@ class OrdersProcessingController extends Controller
     }
 
 
+
     public function get_served_orders()
     {
         $brunch_id = auth()->user()->brunch_id;
-        $orders = orders_processing::where('status', 'served')->where('brunch_id', $brunch_id)->get();
+
+        $orders = orders::with('orders_processing')
+            ->whereHas('orders_processing', function ($query) {
+                $query->where('status', 'served'); // التحقق من حالة "served"
+            })
+            ->where('brunch_id', $brunch_id)
+            ->where('status', 'pending')
+            ->get();
+
+
+        if ($orders->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No orders served found',
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -343,6 +492,16 @@ class OrdersProcessingController extends Controller
         $request['user_id'] = auth()->user()->id;
         $request['brunch_id'] = auth()->user()->brunch_id;
         $request['stage'] = 'done';
+
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'done')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already done',
+            ]);
+        }
 
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
@@ -363,6 +522,14 @@ class OrdersProcessingController extends Controller
 
         $orders_processing = orders_processing::create($request->all());
 
+
+        $type = 'done_order';
+
+        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        event(new notify_msg($order, $type));
+
         return response()->json([
             'success' => true,
             'message' => 'Order done successfully',
@@ -377,6 +544,8 @@ class OrdersProcessingController extends Controller
         $request['user_id'] = auth()->user()->id;
         $request['brunch_id'] = auth()->user()->brunch_id;
         $request['stage'] = 'delivery';
+
+
 
 
         $user = auth()->user();
@@ -437,6 +606,14 @@ class OrdersProcessingController extends Controller
 
 
         $orders_processing = orders_processing::create($request->all());
+
+
+        $type = 'delivered_order';
+
+        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        event(new notify_msg($order, $type));
 
         return response()->json([
             'success' => true,

@@ -251,6 +251,41 @@ class QtapClientsController extends Controller
                     'role' => $role_admin->name,
                 ]);
 
+
+
+                if (isset($branchData['workschedules'])) {
+                    foreach ($branchData['workschedules'] as $day => $times) {
+                        workschedule::create([
+                            'brunch_id' => $branch->id,
+                            'day' => $day,
+                            'opening_time' => $times[0] ?? null,
+                            'closing_time' => $times[1] ?? null,
+                        ]);
+                    }
+                }
+
+
+                // إضافة طرق التقديم
+                if (isset($branchData['serving_ways'])) {
+                    foreach ($branchData['serving_ways'] as $servingWay) {
+                        $data = ['brunch_id' => $branch->id, 'name' => $servingWay];
+                        if ($servingWay === 'dine_in') {
+                            $data['tables_number'] = $branchData['tables_number'] ?? null;
+                        }
+                        serving_ways::create($data);
+                    }
+                }
+
+                // إضافة وسائل الدفع
+                if (isset($branchData['payment_services'])) {
+                    foreach ($branchData['payment_services'] as $paymentService) {
+                        payment_services::create([
+                            'brunch_id' => $branch->id,
+                            'name' => $paymentService,
+                        ]);
+                    }
+                }
+
                 // ✅ إدخال بيانات الاتصال
                 if (isset($branchData['contact_info'])) {
                     contact_info::create([
@@ -325,8 +360,8 @@ class QtapClientsController extends Controller
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Client and branches added successfully.',
-                    'data' => $new_client,
-                    'payment_url' => $payment_url
+                    'payment_url' => $payment_url,
+                    'data' => $new_client
                 ], 201);
             } else {
 
@@ -367,6 +402,13 @@ class QtapClientsController extends Controller
         }
 
         $client = qtap_clients::where('email', $request->email)->first();
+
+        if (!$client) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'there is no client with this email',
+            ]);
+        }
 
         $brunchs = qtap_clients_brunchs::with('role')->select('id')->where('client_id', $client->id)->get();
 

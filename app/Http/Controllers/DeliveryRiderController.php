@@ -11,6 +11,10 @@ use App\Models\orders;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 
+use Illuminate\Support\Facades\Auth;
+// call hash
+use Illuminate\Support\Facades\Hash;
+
 use Carbon\Carbon;
 
 
@@ -34,8 +38,9 @@ class DeliveryRiderController extends Controller
 
 
     public function get_delivery_available(){
+        $brunch_id = Auth::user()->brunch_id;
 
-        $delivery_riders = restaurant_user_staff::where('status_rider', 'Available')->get();
+        $delivery_riders = restaurant_user_staff::where('status_rider', 'Available')->where('brunch_id', $brunch_id)->where('role', 'delivery_rider')->get();
         return response()->json([
             'success' => true,
             'delivery_riders' => $delivery_riders
@@ -117,18 +122,18 @@ class DeliveryRiderController extends Controller
     }
 
 
-    public function update(Request $request)
+    public function update(Request $request )
     {
 
         $user = auth()->user();
-        $request['user_id'] = $user->user_id;
-        $request['password'] = $user->password;
-        $request['email'] = $user->email;
+        $id = $user->id;
         DB::beginTransaction();
 
         try {
 
-            $restaurant_staff = restaurant_user_staff::find($user->user_id);
+            $restaurant_staff = restaurant_user_staff::find($id);
+
+
             if (!$restaurant_staff) {
                 return response()->json([
                     'success' => false,
@@ -136,9 +141,12 @@ class DeliveryRiderController extends Controller
                 ]);
             }
 
+            $request['email'] = $restaurant_staff->email;
+
+
             $validate = Validator::make($request->all(), [
                 'brunch_id' => 'sometimes|integer|exists:qtap_clients_brunchs,id',
-                'delivery_areas_id' => 'required|integer|exists:delivery_areas,id',
+                'delivery_areas_id' => 'sometimes|integer|exists:delivery_areas,id',
 
                 'name' => ['sometimes', 'string', Rule::unique('restaurant_user_staffs', 'name')->ignore($restaurant_staff->id)],
 
@@ -154,7 +162,6 @@ class DeliveryRiderController extends Controller
                 'password' => 'sometimes|string',
                 'email' => 'sometimes|string|email',
                 'role' => 'sometimes|in:delivery_rider',
-                'user_id' => 'sometimes|integer|exists:qtap_clients,id',
                 'status_rider' => 'sometimes|in:Available,Busy',
                 'status' => 'sometimes|in:active,inactive',
             ]);
@@ -167,6 +174,9 @@ class DeliveryRiderController extends Controller
             }
 
             $data = $request->all();
+
+
+
 
             // تحديث delivery_rider
             $restaurant_staff->update($data);
@@ -260,7 +270,7 @@ class DeliveryRiderController extends Controller
 
         return response()->json([
             'success' => true,
-            'total_delivered_orders' => $totalDeliveredOrders,
+            'total_Cancaled_delivered_orders' => $totalDeliveredOrders,
         ]);
     }
 

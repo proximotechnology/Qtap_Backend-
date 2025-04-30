@@ -31,7 +31,12 @@ class OrdersController extends Controller
             ]);
         }
 
-        $orders = orders::where('brunch_id', $brunch_id)->get();
+        $orders = orders::with(
+            'orders_processing' ,
+            'orders_processing.user' ,
+
+
+        )->where('brunch_id', $brunch_id)->get();
 
         return response()->json([
             'success' => true,
@@ -393,12 +398,14 @@ class OrdersController extends Controller
     public function destroy($id)
     {
         $orders = orders::find($id);
+
         if (!$orders) {
             return response()->json([
                 'success' => false,
                 'message' => 'Order not found'
             ]);
         }
+
         $orders->delete();
 
         return response()->json([
