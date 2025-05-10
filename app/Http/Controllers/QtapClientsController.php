@@ -185,6 +185,7 @@ class QtapClientsController extends Controller
 
             if ($request->hasFile('img')) {
                 $validatedData['img'] = $request->file('img')->store('uploads/clients', 'public');
+                $validatedData['img'] = 'storage/' . $validatedData['img'];
             }
 
             // ✅ إنشاء العميل
@@ -476,6 +477,7 @@ class QtapClientsController extends Controller
             if ($request->hasFile('img')) {
                 $imagePath = $request->file('img')->store('uploads/clients/' . $id, 'public');
                 $validatedData['img'] = 'uploads/clients/' . $id . '/' . basename($imagePath);
+                $validatedData['img'] = 'storage/' . $validatedData['img'];
             }
 
             // تحديث بيانات العميل
@@ -576,12 +578,12 @@ class QtapClientsController extends Controller
             // معالجة الصور
             if ($request->hasFile('logo')) {
                 $logoPath = $request->file('logo')->store('uploads/client' . $id . '/brunch' . $brunch_id, 'public');
-                $validatedData['logo'] = $logoPath;
+                $validatedData['logo'] = 'storage/' . $logoPath;
             }
 
             if ($request->hasFile('cover')) {
                 $coverPath = $request->file('cover')->store('uploads/client' . $id . '/brunch' . $brunch_id, 'public');
-                $validatedData['cover'] = $coverPath;
+                $validatedData['cover'] = 'storage/' .  $coverPath;
             }
 
             // تحديث بيانات الفرع
@@ -741,7 +743,7 @@ class QtapClientsController extends Controller
 
             if ($request->hasFile('img')) {
                 $imagePath = $request->file('img')->store('uploads/clients', 'public');
-                $validatedData['img'] = $imagePath;
+                $validatedData['img'] = 'storage/' .  $imagePath;
             }
 
             // تحديث بيانات العميل
@@ -896,7 +898,7 @@ class QtapClientsController extends Controller
 
             if ($request->hasFile('img')) {
                 $imagePath = $request->file('img')->store('uploads/clients', 'public');
-                $validatedData['img'] = $imagePath;
+                $validatedData['img'] =  'storage/' . $imagePath;
             }
 
             // تحديث بيانات العميل
@@ -1009,20 +1011,206 @@ class QtapClientsController extends Controller
     }
 
 
+    // public function update(Request $request, $id)
+    // {
+    //     try {
+    //         // البحث عن العميل بواسطة المعرف
+    //         $client = qtap_clients::find($id);
+
+    //         if (!$client) {
+    //             return response()->json([
+    //                 'status' => 'error',
+    //                 'message' => 'Client not found.',
+    //             ]);
+    //         }
+
+    //         // التحقق من البيانات المرسلة فقط
+    //         $validatedData = $request->validate([
+    //             'name' => 'sometimes|string|max:255',
+    //             'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    //             'country' => 'sometimes|string|max:255',
+    //             'mobile' => 'sometimes|string|max:255',
+    //             'birth_date' => 'sometimes|date',
+    //             'email' => 'sometimes|string|email|max:255|unique:qtap_clients,email,' . $id,
+    //             'status' => 'sometimes|in:active,inactive',
+    //             'password' => 'sometimes|string|min:1',
+    //             'user_type' => 'sometimes|in:qtap_clients',
+    //         ]);
+
+    //         if ($request->has('password')) {
+    //             $validatedData['password'] = Hash::make($request->password);
+    //         }
+
+    //         if ($request->hasFile('img')) {
+    //             $imagePath = $request->file('img')->store('uploads/clients', 'public');
+    //             $validatedData['img'] =  'storage/' . $imagePath;
+    //         }
+
+    //         // تحديث بيانات العميل
+    //         $client->update($validatedData);
+
+    //         // تحديث الفروع إذا تم إرسالها
+    //         $branches = collect($request->all())->filter(function ($value, $key) {
+    //             return Str::startsWith($key, 'brunch'); // البحث عن المفاتيح التي تبدأ بـ "brunch"
+    //         });
+
+    //         foreach ($branches as $branchId => $branchData) {
+    //             preg_match('/\d+/', $branchId, $matches);
+    //             $number = $matches[0] ?? null;
+
+    //             if ($number) {
+    //                 $branch = qtap_clients_brunchs::find($number);
+
+    //                 if ($branch) {
+    //                     // تحديث بيانات الفرع
+    //                     $branch->update([
+    //                         'currency_id' => $branchData['currency_id'] ?? $branch->currency_id,
+    //                         // 'pricing_id' => $branchData['pricing_id'] ?? $branch->pricing_id,
+    //                         // 'discount_id' => $branchData['discount_id'] ?? $branch->discount_id,
+    //                         'business_name' => $branchData['business_name'] ?? $branch->business_name,
+    //                         'country' => $branchData['country'] ?? $branch->country,
+    //                         'city' => $branchData['city'] ?? $branch->city,
+    //                         'latitude' => $branchData['latitude'] ?? $branch->latitude,
+    //                         'longitude' => $branchData['longitude'] ?? $branch->longitude,
+    //                         'business_format' => $branchData['business_format'] ?? $branch->business_format,
+    //                         'menu_design' => $branchData['menu_design'] ?? $branch->menu_design,
+    //                         'default_mode' => $branchData['default_mode'] ?? $branch->default_mode,
+    //                         'payment_time' => $branchData['payment_time'] ?? $branch->payment_time,
+    //                         'call_waiter' => $branchData['call_waiter'] ?? $branch->call_waiter,
+    //                     ]);
+
+
+    //                     // حذف البيانات المرتبطة بالفرع إذا كانت موجودة
+    //                     contact_info::where('brunch_id', $branch->id)->forcedelete();
+    //                     workschedule::where('brunch_id', $branch->id)->forcedelete();
+    //                     serving_ways::where('brunch_id', $branch->id)->forcedelete();
+    //                     payment_services::where('brunch_id', $branch->id)->forcedelete();
+
+
+    //                     // إضافة بيانات الاتصال
+    //                     contact_info::create([
+    //                         'brunch_id' => $branch->id,
+    //                         'phone' => $branchData['business_phone'] ?? null,
+    //                         'email' => $branchData['business_email'] ?? null,
+    //                         'website' => $branchData['website'] ?? null,
+    //                         'facebook' => $branchData['facebook'] ?? null,
+    //                         'twitter' => $branchData['twitter'] ?? null,
+    //                         'instagram' => $branchData['instagram'] ?? null,
+    //                         'address' => $branchData['address'] ?? null,
+    //                     ]);
+
+    //                     // إضافة الجدول الزمني للعمل
+    //                     if (isset($branchData['workschedules'])) {
+    //                         foreach ($branchData['workschedules'] as $day => $times) {
+    //                             workschedule::create([
+    //                                 'brunch_id' => $branch->id,
+    //                                 'day' => $day,
+    //                                 'opening_time' => $times[0] ?? null,
+    //                                 'closing_time' => $times[1] ?? null,
+    //                             ]);
+    //                         }
+    //                     }
+
+    //                     // إضافة طرق التقديم
+    //                     if (isset($branchData['serving_ways'])) {
+    //                         foreach ($branchData['serving_ways'] as $servingWay) {
+    //                             $data = ['brunch_id' => $branch->id, 'name' => $servingWay];
+    //                             if ($servingWay === 'dine_in') {
+    //                                 $data['tables_number'] = $branchData['tables_number'] ?? null;
+    //                             }
+    //                             serving_ways::create($data);
+    //                         }
+    //                     }
+
+    //                     // إضافة وسائل الدفع
+    //                     if (isset($branchData['payment_services'])) {
+    //                         foreach ($branchData['payment_services'] as $paymentService) {
+    //                             payment_services::create([
+    //                                 'brunch_id' => $branch->id,
+    //                                 'name' => $paymentService,
+    //                             ]);
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'message' => 'Client and branches updated successfully.',
+    //             'data' => $client,
+    //         ], 200);
+    //     } catch (ValidationException $e) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Some data is incomplete or incorrect.',
+    //             'errors' => $e->errors(),
+    //         ], 422);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'An error occurred while updating data.',
+    //             'error_details' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+
+
+
+    public function Performance_restaurant($startYear, $endYear)
+    {
+        // تحديد بداية ونهاية السنة الأولى (startYear)
+        $startDate1 = $startYear . '-01-01';
+        $endDate1 = $startYear . '-12-31';
+
+        // تحديد بداية ونهاية السنة الثانية (endYear)
+        $startDate2 = $endYear . '-01-01';
+        $endDate2 = $endYear . '-12-31';
+
+        // جلب الاشتراكات للسنة الأولى
+        $Subscriptions1 = orders::where('status', 'confirmed')
+            ->whereBetween('created_at', [$startDate1, $endDate1])
+            ->count();
+
+        // جلب الطلبات للسنة الأولى
+        $Orders1 =orders::where('status', 'confirmed')
+            ->whereBetween('created_at', [$startDate1, $endDate1])
+            ->count();
+
+        // جلب الاشتراكات للسنة الثانية
+        $Subscriptions2 = orders::where('status', 'confirmed')
+            ->whereBetween('created_at', [$startDate2, $endDate2])
+            ->count();
+
+        // جلب الطلبات للسنة الثانية
+        $Orders2 = orders::where('status', 'confirmed')
+            ->whereBetween('created_at', [$startDate2, $endDate2])
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'Subscriptions_' . $startYear => $Subscriptions1,
+            'Orders_' . $startYear => $Orders1,
+            'Subscriptions_' . $endYear => $Subscriptions2,
+            'Orders_' . $endYear => $Orders2,
+        ]);
+    }
+
+
+
     public function update(Request $request, $id)
     {
         try {
-            // البحث عن العميل بواسطة المعرف
             $client = qtap_clients::find($id);
 
             if (!$client) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Client not found.',
-                ]);
+                ], 404);
             }
 
-            // التحقق من البيانات المرسلة فقط
             $validatedData = $request->validate([
                 'name' => 'sometimes|string|max:255',
                 'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -1033,6 +1221,7 @@ class QtapClientsController extends Controller
                 'status' => 'sometimes|in:active,inactive',
                 'password' => 'sometimes|string|min:1',
                 'user_type' => 'sometimes|in:qtap_clients',
+                'order_id' => 'sometimes|string',
             ]);
 
             if ($request->has('password')) {
@@ -1041,91 +1230,75 @@ class QtapClientsController extends Controller
 
             if ($request->hasFile('img')) {
                 $imagePath = $request->file('img')->store('uploads/clients', 'public');
-                $validatedData['img'] = $imagePath;
+                $validatedData['img'] = 'storage/' . $imagePath;
             }
 
-            // تحديث بيانات العميل
             $client->update($validatedData);
 
-            // تحديث الفروع إذا تم إرسالها
-            $branches = collect($request->all())->filter(function ($value, $key) {
-                return Str::startsWith($key, 'brunch'); // البحث عن المفاتيح التي تبدأ بـ "brunch"
-            });
+            // تحديث الفروع
+            if ($request->has('brunchs')) {
+                foreach ($request->brunchs as $brunchData) {
+                    $branch = qtap_clients_brunchs::find($brunchData['id'] ?? null);
 
-            foreach ($branches as $branchId => $branchData) {
-                preg_match('/\d+/', $branchId, $matches);
-                $number = $matches[0] ?? null;
-
-                if ($number) {
-                    $branch = qtap_clients_brunchs::find($number);
-
-                    if ($branch) {
-                        // تحديث بيانات الفرع
+                    if ($branch && $branch->client_id == $client->id) {
                         $branch->update([
-                            'currency_id' => $branchData['currency_id'] ?? $branch->currency_id,
-                            // 'pricing_id' => $branchData['pricing_id'] ?? $branch->pricing_id,
-                            // 'discount_id' => $branchData['discount_id'] ?? $branch->discount_id,
-                            'business_name' => $branchData['business_name'] ?? $branch->business_name,
-                            'country' => $branchData['country'] ?? $branch->country,
-                            'city' => $branchData['city'] ?? $branch->city,
-                            'latitude' => $branchData['latitude'] ?? $branch->latitude,
-                            'longitude' => $branchData['longitude'] ?? $branch->longitude,
-                            'business_format' => $branchData['business_format'] ?? $branch->business_format,
-                            'menu_design' => $branchData['menu_design'] ?? $branch->menu_design,
-                            'default_mode' => $branchData['default_mode'] ?? $branch->default_mode,
-                            'payment_time' => $branchData['payment_time'] ?? $branch->payment_time,
-                            'call_waiter' => $branchData['call_waiter'] ?? $branch->call_waiter,
+                            'currency_id' => $brunchData['currency_id'] ?? $branch->currency_id,
+                            'pricing_id' => $brunchData['pricing_id'] ?? $branch->pricing_id,
+                            'discount_id' => $brunchData['discount_id'] ?? $branch->discount_id,
+                            'payment_method' => $brunchData['payment_method'] ?? $branch->payment_method,
+                            'business_name' => $brunchData['business_name'] ?? $branch->business_name,
+                            'business_country' => $brunchData['business_country'] ?? $branch->business_country,
+                            'business_city' => $brunchData['business_city'] ?? $branch->business_city,
+                            'latitude' => $brunchData['latitude'] ?? $branch->latitude,
+                            'longitude' => $brunchData['longitude'] ?? $branch->longitude,
+                            'business_format' => $brunchData['business_format'] ?? $branch->business_format,
+                            'menu_design' => $brunchData['menu_design'] ?? $branch->menu_design,
+                            'default_mode' => $brunchData['default_mode'] ?? $branch->default_mode,
+                            'payment_time' => $brunchData['payment_time'] ?? $branch->payment_time,
+                            'call_waiter' => $brunchData['call_waiter'] ?? $branch->call_waiter,
+                            'status' => $brunchData['status'] ?? $branch->status,
+                            'order_id' => $brunchData['order_id'] ?? $branch->order_id,
+                            'affiliate_code' => $brunchData['affiliate_code'] ?? $branch->affiliate_code,
                         ]);
 
-
-                        // حذف البيانات المرتبطة بالفرع إذا كانت موجودة
-                        contact_info::where('brunch_id', $branch->id)->forcedelete();
-                        workschedule::where('brunch_id', $branch->id)->forcedelete();
-                        serving_ways::where('brunch_id', $branch->id)->forcedelete();
-                        payment_services::where('brunch_id', $branch->id)->forcedelete();
-
-
-                        // إضافة بيانات الاتصال
-                        contact_info::create([
-                            'brunch_id' => $branch->id,
-                            'phone' => $branchData['business_phone'] ?? null,
-                            'email' => $branchData['business_email'] ?? null,
-                            'website' => $branchData['website'] ?? null,
-                            'facebook' => $branchData['facebook'] ?? null,
-                            'twitter' => $branchData['twitter'] ?? null,
-                            'instagram' => $branchData['instagram'] ?? null,
-                            'address' => $branchData['address'] ?? null,
-                        ]);
-
-                        // إضافة الجدول الزمني للعمل
-                        if (isset($branchData['workschedules'])) {
-                            foreach ($branchData['workschedules'] as $day => $times) {
+                        // تحديث مواعيد العمل
+                        if (isset($brunchData['workschedule'])) {
+                            workschedule::where('brunch_id', $branch->id)->forceDelete();
+                            foreach ($brunchData['workschedule'] as $schedule) {
                                 workschedule::create([
                                     'brunch_id' => $branch->id,
-                                    'day' => $day,
-                                    'opening_time' => $times[0] ?? null,
-                                    'closing_time' => $times[1] ?? null,
+                                    'day' => $schedule['day'],
+                                    'opening_time' => $schedule['opening_time'],
+                                    'closing_time' => $schedule['closing_time'],
                                 ]);
                             }
                         }
 
-                        // إضافة طرق التقديم
-                        if (isset($branchData['serving_ways'])) {
-                            foreach ($branchData['serving_ways'] as $servingWay) {
-                                $data = ['brunch_id' => $branch->id, 'name' => $servingWay];
-                                if ($servingWay === 'dine_in') {
-                                    $data['tables_number'] = $branchData['tables_number'] ?? null;
-                                }
-                                serving_ways::create($data);
+                        // تحديث بيانات الاتصال
+                        if (isset($brunchData['contact_info'])) {
+                            contact_info::where('brunch_id', $branch->id)->forceDelete();
+                            foreach ($brunchData['contact_info'] as $contact) {
+                                contact_info::create([
+                                    'brunch_id' => $branch->id,
+                                    'business_email' => $contact['business_email'],
+                                    'business_phone' => $contact['business_phone'],
+                                    'website' => $contact['website'],
+                                    'facebook' => $contact['facebook'],
+                                    'twitter' => $contact['twitter'],
+                                    'instagram' => $contact['instagram'],
+                                    'address' => $contact['address'],
+                                ]);
                             }
                         }
 
-                        // إضافة وسائل الدفع
-                        if (isset($branchData['payment_services'])) {
-                            foreach ($branchData['payment_services'] as $paymentService) {
-                                payment_services::create([
+                        // تحديث طرق الخدمة
+                        if (isset($brunchData['serving_ways'])) {
+                            serving_ways::where('brunch_id', $branch->id)->forceDelete();
+                            foreach ($brunchData['serving_ways'] as $way) {
+                                serving_ways::create([
                                     'brunch_id' => $branch->id,
-                                    'name' => $paymentService,
+                                    'name' => $way['name'],
+                                    'tables_number' => $way['tables_number'] ?? null,
                                 ]);
                             }
                         }
@@ -1135,20 +1308,13 @@ class QtapClientsController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Client and branches updated successfully.',
-                'data' => $client,
-            ], 200);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Some data is incomplete or incorrect.',
-                'errors' => $e->errors(),
-            ], 422);
+                'message' => 'Client updated successfully.',
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while updating data.',
-                'error_details' => $e->getMessage(),
+                'message' => 'An error occurred.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -1175,9 +1341,6 @@ class QtapClientsController extends Controller
 
     public function menu($id)
     {
-        // $menu = meals::with('variants' , 'Extras')->where('brunch_id' , $id)->get();
-
-
 
 
         $menu = meals_categories::with(
@@ -1187,9 +1350,6 @@ class QtapClientsController extends Controller
             'meals.extras',
             'meals.meals_special_offer',
             'meals.discounts'
-
-
-
         )->where('brunch_id', $id)->get();
 
         $customers__visits = Customers_Visits_restaurant::where('brunch_id', $id)->first();
@@ -1217,7 +1377,23 @@ class QtapClientsController extends Controller
         ]);
     }
 
+    public function menu_all_restaurants()
+    {
+        $menu = qtap_clients::with([
+            'brunchs',
+            'brunchs.cat_meal',
+            'brunchs.cat_meal.meals',
+            'brunchs.cat_meal.meals.variants',
+            'brunchs.cat_meal.meals.extras',
+            'brunchs.cat_meal.meals.meals_special_offer',
+            'brunchs.cat_meal.meals.discounts'
+        ])->get();
 
+        return response()->json([
+            'status' => 'success',
+            'data' => $menu
+        ]);
+    }
 
     public function menu_by_table($tableId, $brunchId)
     {
@@ -1337,11 +1513,15 @@ class QtapClientsController extends Controller
         }
 
         // استعلام للحصول على عدد الأفرع وقيمة الأرباح لكل يوم في السنة الحالية
-        $revenuePerDay = orders::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, DAY(created_at) as day, SUM(total_price) as total_revenue')
-            ->whereYear('created_at', date('Y')) // استخدام السنة الحالية
+        $revenuePerDay = Orders::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, DAY(created_at) as day, SUM(total_price) as total_revenue, MIN(created_at) as created_at')
+        ->whereYear('created_at', date('Y')) // استخدام السنة الحالية
             ->groupBy('year', 'month', 'day')
             ->orderBy('created_at', 'asc') // ترتيب البيانات حسب التاريخ
             ->get();
+
+
+
+
 
         // تحويل البيانات إلى مصفوفة تحتوي على تاريخ اليوم وقيمة الربح
         $revenueData = $revenuePerDay->map(function ($item) {
@@ -1449,6 +1629,7 @@ class QtapClientsController extends Controller
         return response()->json([
             "success" => true,
             "Revenue" => $Revenue,
+            "balance" => $Revenue - 0,
             "Withdrawal" => 0,
 
         ]);

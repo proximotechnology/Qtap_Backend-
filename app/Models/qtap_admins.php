@@ -25,6 +25,7 @@ class qtap_admins extends Authenticatable implements JWTSubject
         'country',
         'email',
         'password',
+        'otp',
         'img',
         'user_type',
     ];

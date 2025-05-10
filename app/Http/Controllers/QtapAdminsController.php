@@ -71,7 +71,7 @@ class QtapAdminsController extends Controller
 
         // استعلام للحصول على عدد الأفرع وقيمة الأرباح لكل شهر في السنة المحددة
         // تأكد من أن العلاقة بين "qtap_clients_brunchs" و "revenue" مهيأة
-        
+
         $branchesPerMonth = Revenue::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(value) as total_revenue') // جمع الأرباح
             ->whereYear('created_at', $year) // استخدام السنة المدخلة
             ->groupBy('year', 'month')
@@ -159,11 +159,12 @@ class QtapAdminsController extends Controller
         }
 
         // استعلام للحصول على عدد الأفرع وقيمة الأرباح لكل يوم في السنة الحالية
-        $revenuePerDay = Revenue::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, DAY(created_at) as day, SUM(value) as total_revenue')
-            ->whereYear('created_at', date('Y')) // استخدام السنة الحالية
-            ->groupBy('year', 'month', 'day')
-            ->orderBy('created_at', 'asc') // ترتيب البيانات حسب التاريخ
-            ->get();
+        $revenuePerDay = Revenue::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, DAY(created_at) as day, SUM(value) as total_revenue, MIN(created_at) as created_at')
+    ->whereYear('created_at', date('Y'))
+    ->groupBy('year', 'month', 'day')
+    ->orderBy('created_at', 'asc') // الآن هذا created_at هو الناتج من MIN()
+    ->get();
+
 
         // تحويل البيانات إلى مصفوفة تحتوي على تاريخ اليوم وقيمة الربح
         $revenueData = $revenuePerDay->map(function ($item) {

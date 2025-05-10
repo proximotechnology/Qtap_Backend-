@@ -49,6 +49,12 @@ class MealsCategoriesController extends Controller
             $data['image'] = 'storage/' . $path;
         }
 
+        if ($request->hasFile('cover')) {
+            $path = $request->file('cover')->store('images', 'public');
+
+            $data['cover'] = 'storage/' . $path;
+        }
+
         $category = meals_categories::create($data);
         return response()->json(['message' => 'Category created successfully', 'data' => $category], 201);
     }
@@ -90,6 +96,15 @@ class MealsCategoriesController extends Controller
             $path = $request->file('image')->store('images', 'public');
             $data['image'] =  'storage/' . $path;
         }
+
+        if ($request->hasFile('cover')) {
+            if ($meals_categories->cover) {
+                Storage::disk('public')->delete($meals_categories->cover);
+            }
+            $path = $request->file('cover')->store('images', 'public');
+            $data['cover'] =  'storage/' . $path;
+        }
+
 
         $meals_categories->update($data);
         return response()->json(['message' => 'Category updated successfully', 'data' => $meals_categories], 200);

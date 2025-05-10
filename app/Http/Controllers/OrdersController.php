@@ -17,9 +17,7 @@ use Illuminate\Support\Facades\Validator;
 
 class OrdersController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index($brunch_id)
     {
 
@@ -32,8 +30,8 @@ class OrdersController extends Controller
         }
 
         $orders = orders::with(
-            'orders_processing' ,
-            'orders_processing.user' ,
+            'orders_processing',
+            'orders_processing.user',
 
 
         )->where('brunch_id', $brunch_id)->get();
@@ -194,6 +192,7 @@ class OrdersController extends Controller
                     return response()->json([
                         'status' => 'success',
                         'message' => 'Order created successfully',
+                         'order' => $order,
                         'payment_url' => $response['payment_url']
                     ], 201);
                 } else {
@@ -223,175 +222,6 @@ class OrdersController extends Controller
             ], 500);
         }
     }
-
-
-
-
-    // public function store(Request $request)
-    // {
-
-    //     DB::beginTransaction(); // بدء المعاملة
-
-    //     try {
-    //         $validator = Validator::make($request->all(), [
-    //             'name' => 'required|max:255',
-    //             'phone' => 'required|max:255',
-    //             'comments' => 'nullable|max:2000',
-
-
-    //             'city' => 'nullable|max:255',
-    //             'address' => 'nullable|max:255',
-
-    //             'type' => 'required|in:dinein,takeaway,delivery',
-
-    //             'latitude' => 'nullable|numeric|between:-90,90',
-    //             'longitude' => 'nullable|numeric|between:-180,180',
-
-    //             'table_id' => 'nullable|integer|exists:tables,id',
-    //             'discount_code' => 'nullable|string',
-    //             'tax' => 'nullable|numeric',
-    //             'total_price' => 'required|numeric',
-
-    //             'payment_way' => 'required|in:cash,wallet',
-
-    //             'meal_id' => 'required|integer|exists:meals,id',
-
-    //             'extras' => 'nullable|array',
-    //             'extras.*.id' => 'nullable|integer|exists:extras,id',
-
-    //             'variants' => 'nullable|array',
-    //             'variants.*.id' => 'nullable|integer|exists:variants,id',
-
-    //             'size_id' => 'nullable|integer|exists:sizes,id',
-    //             'quantity' => 'required|integer',
-
-    //             'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
-    //         ]);
-
-    //         if ($validator->fails()) {
-    //             return response()->json(['errors' => $validator->errors()], 422);
-    //         }
-
-    //         $brunch = qtap_clients_brunchs::with('client')->where('status', 'active')->find($request->brunch_id);
-
-    //         if (!$brunch) {
-    //             return response()->json([
-    //                 'status' => 'error',
-    //                 'message' => 'Brunch not active.',
-    //             ]);
-    //         }
-
-
-
-    //         $meal = meals::find($request->meal_id);
-
-    //         if (!$meal) {
-    //             return response()->json([
-    //                 'status' => 'error',
-    //                 'message' => 'Meal not found.',
-    //             ]);
-    //         }
-
-
-    //         // تجهيز البيانات وإصلاح مشكلة المصفوفات
-    //         $data = $request->all();
-    //         if (isset($data['variants'])) {
-    //             $data['variants'] = json_encode($data['variants']);
-    //         }
-
-
-    //         if (isset($data['extras'])) {
-    //             $data['extras'] = json_encode($data['extras']);
-    //         }
-
-    //         $orders = orders::create($data);
-
-    //         if ($request->payment_way == 'wallet') {
-
-    //             $brunch_id = $request->brunch_id;
-
-    //             $total_price = ceil($request->total_price);
-
-    //             $quantity = $request->quantity;
-
-
-
-    //             $userData = [
-    //                 'first_name' => $request->name,
-    //                 'last_name' => $request->name,
-    //                 'email' => $brunch->client->email,
-    //                 // 'password' => $request->password,
-    //                 'phone_number' => $request->phone,
-    //                 'order_id' => $orders->id
-    //             ];
-
-    //             // بيانات الطلب الخاص برسوم التسجيل
-    //             $orderData = [
-
-    //                 'total' =>  $total_price,
-    //                 'currency' => 'EGP',
-    //                 'service_name' =>  $meal->name,
-
-    //                 'items' => [
-    //                     [
-    //                         'name' =>   $meal->name,
-    //                         "amount_cents" => intval($total_price) * 100,
-    //                         "description" => "Qtap Client Registration",
-    //                         "quantity" => $quantity
-    //                     ]
-    //                 ]
-    //             ];
-
-
-    //             // استدعاء كنترولر الدفع
-    //             $paymobController = new PaymobController();
-    //             $response = $paymobController->processPayment_orders($orderData, $userData);
-
-
-    //             if ($response['status'] == 'success') {
-
-    //                 DB::commit(); // تأكيد العملية
-
-    //                 return response()->json([
-    //                     'status' => 'success',
-    //                     'message' => 'order created successfully',
-    //                     'payment_url' => $response['payment_url']
-    //                 ], 201);
-    //             } else {
-
-    //                 DB::rollBack(); // إلغاء جميع العمليات عند الفشل
-
-    //                 return response()->json([
-    //                     'status' => 'error',
-    //                     'response' => $response
-
-    //                 ], 201);
-    //             }
-    //         } elseif ($request->payment_way == 'cash') {
-    //             DB::commit(); // تأكيد العملية
-
-    //             return response()->json([
-    //                 'success' => true,
-    //                 'orders' => $orders
-    //             ]);
-    //         } else {
-    //             DB::rollBack(); // إلغاء جميع العمليات عند الفشل
-
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'Payment way not found'
-    //             ]);
-    //         }
-    //     } catch (\Exception $e) {
-    //         DB::rollBack(); // إلغاء جميع العمليات عند حدوث خطأ غير متوقع
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'Something went wrong.',
-    //             'error' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
-
 
 
 

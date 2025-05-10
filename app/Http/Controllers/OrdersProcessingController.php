@@ -92,6 +92,15 @@ class OrdersProcessingController extends Controller
 
         $orders_processing = orders_processing::create($request->all());
 
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
+
         $type = 'accepted_order';
 
         $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
@@ -147,6 +156,16 @@ class OrdersProcessingController extends Controller
         $orders_processing = orders_processing::create($request->all());
 
 
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
+
+
         $type = 'prepared_order';
 
         $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
@@ -169,10 +188,9 @@ class OrdersProcessingController extends Controller
         $orders = orders::whereNotIn('id', function ($query) {
             $query->select('order_id')
                 ->from('orders_processings');
-        })
-            ->where('brunch_id', $brunch_id)
-            ->where('status', 'pending')
-            ->get();
+        })->where('brunch_id', $brunch_id)->where('status', 'pending')->get();
+
+        return response()->json($orders);
 
         return response()->json([
             'success' => true,
@@ -232,6 +250,15 @@ class OrdersProcessingController extends Controller
 
 
         $orders_processing = orders_processing::create($request->all());
+
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
 
 
         $type = 'payment_received_order';
@@ -324,7 +351,17 @@ class OrdersProcessingController extends Controller
         }
 
 
+
         $orders_processing = orders_processing::create($request->all());
+
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
 
 
         $type = 'served_order';
@@ -379,6 +416,15 @@ class OrdersProcessingController extends Controller
 
 
         $orders_processing = orders_processing::create($request->all());
+
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
 
 
         $type = 'choose_delivery_order';
@@ -521,6 +567,16 @@ class OrdersProcessingController extends Controller
 
 
         $orders_processing = orders_processing::create($request->all());
+
+
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
 
 
         $type = 'done_order';

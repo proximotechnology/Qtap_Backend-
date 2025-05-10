@@ -15,7 +15,7 @@ class AdminOrAffiliateMiddleware
      */
     public function handle($request, Closure $next)
     {
-        if (auth('qtap_admins')->check() || auth('qtap_affiliates')->check()) {
+        if (auth('qtap_admins')->check() || auth('qtap_affiliate')->check()) {
             return $next($request);
         }
 

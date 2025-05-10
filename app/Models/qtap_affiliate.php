@@ -30,6 +30,7 @@ class qtap_affiliate extends Authenticatable implements JWTSubject
         'img',
         'code',
         'user_type',
+        'otp',
         'Campaigns',
     ];
 

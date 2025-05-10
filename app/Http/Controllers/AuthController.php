@@ -20,6 +20,10 @@ use Illuminate\Database\QueryException;
 
 use Illuminate\Support\Str;
 
+use App\Mail\OTPMail;
+
+use Illuminate\Support\Facades\Mail;
+
 
 
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -78,6 +82,8 @@ class AuthController extends Controller
 
             $image->move(public_path($uploadPath), $imageName);
             $data['img'] = $uploadPath . '/' . $imageName;
+
+            $data['img'] = 'storage/' . $data['img'];
         }
 
         try {
@@ -120,15 +126,6 @@ class AuthController extends Controller
             ], 500);
         }
     }
-
-
-
-
-
-    /**
-     * تسجيل الدخول
-     */
-
 
     public function login(Request $request)
     {
@@ -227,9 +224,6 @@ class AuthController extends Controller
         }
     }
 
-
-
-
     public function logout(Request $request)
     {
 
@@ -264,5 +258,208 @@ class AuthController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'No user logged in']);
+    }
+
+
+
+    //---------------------------API RESET PASSWORD & VERIFY EMAIL----------------------------------------
+
+    public function sendOTP(Request $request)
+    {
+
+        $otp = rand(100000, 999999);
+
+        $validator = Validator::make($request->all(), [
+            'email' => 'required',
+            'user_type' => 'required|in:qtap_clients,qtap_affiliate,qtap_admins'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'حدث خطاء اثناء التسجيل: ' . $validator->errors(),
+                'status' => false
+            ]);
+        }
+
+        if ($request->user_type == 'qtap_admins') {
+            $user = qtap_admins::where('email', $request->email)->first();
+        } elseif ($request->user_type == 'qtap_affiliate') {
+            $user = qtap_affiliate::where('email', $request->email)->first();
+        } elseif ($request->user_type == 'qtap_clients') {
+            $user = qtap_clients::where('email', $request->email)->first();
+        }
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'حدث خطاء اثناء التسجيل: ' . $validator->errors(),
+                'status' => false
+            ]);
+        }
+
+
+
+        $user->update(['otp' => $otp]);
+
+
+        $data['otp'] = $otp;
+
+        Mail::to($request->email)->send(new OTPMail($otp, 'test'));
+
+        return response()->json([
+            'message' => 'تم ارسال الكود بنجاح',
+            'status' => true
+        ]);
+    }
+
+
+    public function receiveOTP(Request $request)
+    {
+
+
+        $validator = Validator::make($request->all(), [
+            'otp' => 'required|digits:6',
+            'user_type' => 'required|in:qtap_clients,qtap_affiliate,qtap_admins'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'حدث خطاء اثناء التسجيل: ' . $validator->errors(),
+                'status' => false
+            ]);
+        }
+
+        $otp_user = $request->otp;
+
+        if ($request->user_type == 'qtap_admins') {
+            $user = qtap_admins::where('otp', $otp_user)->first();
+        } elseif ($request->user_type == 'qtap_affiliate') {
+            $user = qtap_affiliate::where('otp', $otp_user)->first();
+        } elseif ($request->user_type == 'qtap_clients') {
+            $user = qtap_clients::where('otp', $otp_user)->first();
+        }
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'الكود غير صحيح',
+                'status' => false
+            ]);
+        }
+
+
+        return response()->json([
+            'message' => 'تم التحقق من الكود بنجاح',
+            'status' => true
+        ]);
+    }
+
+
+    public function resetpassword(Request $request)
+    {
+
+        $validator = validator($request->all(), [
+            'password' => 'sometimes|confirmed',
+            'otp' => 'required',
+            'user_type' => 'required|in:qtap_clients,qtap_affiliate,qtap_admins'
+
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'حدث خطاء اثناء التسجيل: ' . $validator->errors(),
+                'status' => false
+            ]);
+        }
+
+        if ($request->user_type == 'qtap_admins') {
+
+            $user = qtap_admins::where('otp', $request->otp)->first();
+        } elseif ($request->user_type == 'qtap_affiliate') {
+
+            $user = qtap_affiliate::where('otp', $request->otp)->first();
+        } elseif ($request->user_type == 'qtap_clients') {
+
+            $user = qtap_clients::where('otp', $request->otp)->first();
+            $staff = restaurant_user_staff::where('user_id', $user->id)->get();
+
+        }
+
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'حدث خطاء اثناء التسجيل: ' . $validator->errors(),
+                'status' => false
+            ]);
+        }
+        // dd($request->all());
+
+        $user->update([
+
+            'password' => Hash::make($request->password),
+            'otp' => null
+        ]);
+
+        if ($request->user_type == 'qtap_clients') {
+            foreach ($staff as $item) {
+                $item->update([
+                    'password' => Hash::make($request->password),
+                ]);
+            }
+        }
+
+
+        return response()->json([
+            'message' => 'تم تغيير كلمة المرور بنجاح',
+            'status' => true
+        ]);
+    }
+
+    public function verfiy_email(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            'otp' => 'required|digits:6',
+            'user_type' => 'required|in:qtap_clients,qtap_affiliate,qtap_admins'
+
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'حدث خطاء اثناء التسجيل: ' . $validator->errors(),
+                'status' => false
+            ]);
+        }
+
+        $otp_user = $request->otp;
+
+
+        if ($request->user_type == 'qtap_admins') {
+            $user = qtap_admins::where('otp', $otp_user)->first();
+        } elseif ($request->user_type == 'qtap_affiliate') {
+            $user = qtap_affiliate::where('otp', $otp_user)->first();
+        } elseif ($request->user_type == 'qtap_clients') {
+            $user = qtap_clients::where('otp', $otp_user)->first();
+        }
+
+
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'الكود غير صحيح',
+                'status' => false
+            ]);
+        }
+
+
+
+
+        $user->update([
+            'email_verified_at' => now(),
+            'otp' => null
+        ]);
+
+        return response()->json([
+            'message' => 'تم التحقق من الكود بنجاح',
+            'status' => true
+        ]);
     }
 }

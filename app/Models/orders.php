@@ -72,42 +72,97 @@ class orders extends Model
         return [];
     }
 
-
     public function getVariantsAttribute()
     {
-        $variants = $this->attributes['variants'] ?? '[]'; // خذ القيمة الأصلية مش المعدلة
+        $raw = $this->attributes['variants'] ?? '[]';
 
-        if (is_array($variants)) {
-            $ids = $variants; // لو مصفوفة جاهزة، استخدمها كما هي
-        } else {
-            $ids = json_decode($variants, true); // لو نص، فك التشفير
-        }
+        $structuredIds = is_array($raw) ? $raw : json_decode($raw, true);
 
-        if (is_array($ids) && count($ids) > 0) {
-            $ids = Arr::flatten($ids); // تسطيح المصفوفة هنا قبل whereIn
-            return meals_variants::whereIn('id', $ids)->get();
-        }
+        // اجمع كل المعرفات المفردة من جميع المصفوفات
+        $flatIds = is_array($structuredIds) ? Arr::flatten($structuredIds) : [];
 
-        return [];
+        $detailed = count($flatIds) > 0
+            ? meals_variants::whereIn('id', $flatIds)->get()->keyBy('id')
+            : collect();
+
+        // أعِد البنية الأصلية مع التفاصيل داخلها
+        $withDetails = collect($structuredIds)->map(function ($group) use ($detailed) {
+            return collect($group)->map(function ($id) use ($detailed) {
+                return $detailed[$id] ?? null;
+            })->filter(); // نحذف القيم null
+        });
+
+        return [
+            'raw' => $structuredIds,
+            'detailed' => $withDetails,
+        ];
     }
+
+
 
     public function getExtrasAttribute()
-{
-    $extras = $this->attributes['extras'] ?? '[]'; // خذ القيمة الأصلية مش المعدلة
+    {
+        $raw = $this->attributes['extras'] ?? '[]';
 
-    if (is_array($extras)) {
-        $ids = $extras; // لو مصفوفة جاهزة، استخدمها كما هي
-    } else {
-        $ids = json_decode($extras, true); // لو نص، فك التشفير
+        $structuredIds = is_array($raw) ? $raw : json_decode($raw, true);
+
+        $flatIds = is_array($structuredIds) ? Arr::flatten($structuredIds) : [];
+
+        $detailed = count($flatIds) > 0
+            ? meals_extra::whereIn('id', $flatIds)->get()->keyBy('id')
+            : collect();
+
+        $withDetails = collect($structuredIds)->map(function ($group) use ($detailed) {
+            return collect($group)->map(function ($id) use ($detailed) {
+                return $detailed[$id] ?? null;
+            })->filter();
+        });
+
+        return [
+            'raw' => $structuredIds,
+            'detailed' => $withDetails,
+        ];
     }
 
-    if (is_array($ids) && count($ids) > 0) {
-        $ids = Arr::flatten($ids); // تسطيح المصفوفة هنا قبل whereIn
-        return meals_extra::whereIn('id', $ids)->get(); // هنا ضع اسم الموديل المناسب لـ extras
-    }
 
-    return [];
-}
+
+
+
+    // public function getVariantsAttribute()
+    // {
+    //     $variants = $this->attributes['variants'] ?? '[]'; // خذ القيمة الأصلية مش المعدلة
+
+    //     if (is_array($variants)) {
+    //         $ids = $variants; // لو مصفوفة جاهزة، استخدمها كما هي
+    //     } else {
+    //         $ids = json_decode($variants, true); // لو نص، فك التشفير
+    //     }
+
+    //     if (is_array($ids) && count($ids) > 0) {
+    //         $ids = Arr::flatten($ids); // تسطيح المصفوفة هنا قبل whereIn
+    //         return meals_variants::whereIn('id', $ids)->get();
+    //     }
+
+    //     return [];
+    // }
+
+    // public function getExtrasAttribute()
+    // {
+    //     $extras = $this->attributes['extras'] ?? '[]'; // خذ القيمة الأصلية مش المعدلة
+
+    //     if (is_array($extras)) {
+    //         $ids = $extras; // لو مصفوفة جاهزة، استخدمها كما هي
+    //     } else {
+    //         $ids = json_decode($extras, true); // لو نص، فك التشفير
+    //     }
+
+    //     if (is_array($ids) && count($ids) > 0) {
+    //         $ids = Arr::flatten($ids); // تسطيح المصفوفة هنا قبل whereIn
+    //         return meals_extra::whereIn('id', $ids)->get(); // هنا ضع اسم الموديل المناسب لـ extras
+    //     }
+
+    //     return [];
+    // }
 
 
 

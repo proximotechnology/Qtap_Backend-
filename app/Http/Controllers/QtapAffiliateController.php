@@ -62,7 +62,6 @@ class QtapAffiliateController extends Controller
     {
         try {
 
-
             qtap_affiliate::where('email', $request->email)->where('status', 'inactive')->delete();
 
             $affiliate_code = $this->generateAffiliateCode();
@@ -76,11 +75,13 @@ class QtapAffiliateController extends Controller
                 'birth_date' => 'nullable|date',
                 'user_type' => 'nullable|in:qtap_affiliates',
                 'payment_way' => 'nullable|in:bank_account,wallet,credit_card',
+                'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
             if ($validator->fails()) {
                 return response()->json(['errors' => $validator->errors()], 422);
             }
+
 
             $validatedData = $request->all();
 
@@ -91,6 +92,13 @@ class QtapAffiliateController extends Controller
             $validatedData['password'] = Hash::make($validatedData['password']);
 
             $validatedData['code'] = $link;
+
+
+            if ($request->hasFile('img')) {
+                // store
+                $path = $request->file('img')->store('images', 'public');
+                $validatedData['img'] = 'storage/' . $path;
+            }
 
             $affiliate = qtap_affiliate::create($validatedData);
 
@@ -118,7 +126,19 @@ class QtapAffiliateController extends Controller
 
 
 
-    public function affiliate_transactions()
+    public function affiliate_transactions($id)
+    {
+
+        $transactions = affiliate_transactions::with('affiliate')->where('created_at', '>=', now()->subDays(30))->where('affiliate_id', $id)->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'transactions' => $transactions
+        ]);
+    }
+
+
+    public function affiliate_transactions_all()
     {
 
         $transactions = affiliate_transactions::with('affiliate')->where('created_at', '>=', now()->subDays(30))->orderBy('created_at', 'desc')->get();

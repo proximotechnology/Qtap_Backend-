@@ -366,7 +366,7 @@ class PaymobController extends Controller
                 $campaigns = Campaigns::where('status', 'active')->withCount('affiliateRevenues')->get();
 
 
-                dd($campaigns);
+                // dd($campaigns);
 
                 foreach ($campaigns as $campaign) {
                     if ($campaign->affiliate_revenues_count < $campaign->limit) {

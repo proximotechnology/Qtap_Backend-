@@ -71,4 +71,9 @@ class qtap_clients_brunchs extends Model
         return $this->hasMany(Revenue::class , 'client_id' , 'client_id');
     }
 
+    public function cat_meal(){
+
+        return $this->hasMany(meals_categories::class , 'brunch_id' , 'id');
+    }
+
 }

@@ -36,6 +36,9 @@ use App\Http\Controllers\DeliveryAreaController;
 use App\Http\Controllers\OrdersController;
 use App\Http\Controllers\RestaurantUserStaffController;
 use App\Http\Controllers\OrdersProcessingController;
+use App\Http\Controllers\FeedbackRestaurantController;
+use App\Http\Controllers\FaqQtapController;
+use App\Http\Controllers\ClientsTransactionsController;
 use App\Models\qtap_admins;
 
 use App\Http\Middleware\CheckClient;
@@ -70,11 +73,29 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 
 
+//------------------------------------reset_pass_verfiy_email------------------------------------------------------------------
+Route::post('sendOTP', [AuthController::class, 'sendOTP'])->name('sendOTP');
+Route::post('receiveOTP', [AuthController::class, 'receiveOTP'])->name('receiveOTP');
+Route::post('resetpassword', [AuthController::class, 'resetpassword'])->name('resetpassword');
+Route::post('verfiy_email', [AuthController::class, 'verfiy_email'])->name('verfiy_email');
+
+//-----------------------------------------------------------------------------------------
+
+
+
 
 
 //-------------------------------------------ADMIN OR CLIENT-------------------------------
 
-Route::middleware('admin_or_client')->group(function () {});
+Route::middleware('admin_or_client')->group(function () {
+
+    Route::post('clients_update_profile/{id}', [QtapClientsController::class, 'update_profile']);
+    Route::post('clients_update_menu/{id}', [QtapClientsController::class, 'update_menu']);
+
+    Route::get('feedback_client', [FeedbackController::class, 'index']);
+    Route::put('feedback_client/{id}', [FeedbackController::class, 'update']);
+    Route::delete('feedback_client/{id}', [FeedbackController::class, 'destroy']);
+});
 
 //-------------------------------------------ADMIN OR AFFILIATE-----------------------------
 
@@ -93,6 +114,10 @@ Route::get('pricing', [PricingController::class, 'index'])->name('pricing');
 Route::middleware('auth:qtap_admins')->group(function () {
 
 
+    Route::get('affiliate_transactions_all', [QtapAffiliateController::class, 'affiliate_transactions_all'])->name('affiliate_transactions_all');
+
+
+    Route::post('qtap_clients/{id}', [QtapClientsController::class, 'update']);
 
     // Route::get('discount', [DiscountController::class, 'index']);
 
@@ -103,8 +128,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
 
 
-    Route::get('feedback_client', [FeedbackController::class, 'index']);
-    Route::put('feedback_client/{id}', [FeedbackController::class, 'update']);
+
 
 
     Route::get('ticket_client', [TicketSupportController::class, 'index']);
@@ -179,7 +203,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
     Route::post('wallet/{year}', [QtapAdminsController::class, 'wallet'])->name('wallet');
     Route::get('Deposits/{startDate}/{endDate}', [QtapAdminsController::class, 'Deposits'])->name('Deposits');
 
-    Route::get('affiliate_transactions', [QtapAffiliateController::class, 'affiliate_transactions'])->name('affiliate_transactions');
+
 
     Route::get('affiliate_Revenues/{year}', [QtapAffiliateController::class, 'affiliate_Revenues'])->name('affiliate_Revenues');
 
@@ -239,6 +263,15 @@ Route::get('products', [ProductsController::class, 'index']);
 Route::get('discount', [DiscountController::class, 'index']);
 
 
+Route::resource('faq_qtap', FaqQtapController::class);
+
+
+Route::get('feedback_restaurant', [FeedbackRestaurantController::class, 'index']);
+Route::post('feedback_restaurant', [FeedbackRestaurantController::class, 'store']);
+Route::put('feedback_restaurant/{id}', [FeedbackRestaurantController::class, 'update']);
+Route::delete('feedback_restaurant/{id}', [FeedbackRestaurantController::class, 'destroy']);
+
+
 //------------get_brunchs-----------------
 Route::get('get_brunchs', [QtapClientsController::class, 'get_brunchs']);
 
@@ -253,6 +286,8 @@ Route::post('add_orders', [OrdersController::class, 'store'])->name('add_orders'
 
 //-------------menu--------
 Route::get('menu/{id}', [QtapClientsController::class, 'menu'])->name('menu');
+
+Route::get('menu_all_restaurants', [QtapClientsController::class, 'menu_all_restaurants']);
 
 
 Route::get('menu_by_table/{table}/{id}', [QtapClientsController::class, 'menu_by_table'])->name('menu_by_table');
@@ -356,12 +391,13 @@ Route::middleware('auth:restaurant_user_staff', 'role:admin|cashier')->group(fun
 Route::middleware('auth:restaurant_user_staff', 'role:admin')->group(function () {
 
 
-    Route::post('qtap_clients/{id}', [QtapClientsController::class, 'update']);
+
+    Route::post('Performance_restaurant/{startYear}-{endYear}', [QtapClientsController::class, 'Performance_restaurant'])->name('Performance_restaurant');
 
 
 
-    Route::post('clients_update_profile/{id}', [QtapClientsController::class, 'update_profile']);
-    Route::post('clients_update_menu/{id}', [QtapClientsController::class, 'update_menu']);
+
+    Route::get('clients_transactions', [ClientsTransactionsController::class, 'index']);
 
     Route::get('ticket', [TicketSupportController::class, 'index']);
     Route::post('ticket/{id}', [TicketSupportController::class, 'update']);
@@ -369,10 +405,8 @@ Route::middleware('auth:restaurant_user_staff', 'role:admin')->group(function ()
     Route::post('ticket', [TicketSupportController::class, 'store']);
 
 
-    Route::get('feedback', [FeedbackController::class, 'index']);
-    Route::post('feedback/{id}', [FeedbackController::class, 'update']);
-    Route::delete('feedback/{id}', [FeedbackController::class, 'destroy']);
-    Route::post('feedback', [FeedbackController::class, 'store']);
+
+    Route::post('feedback_client', [FeedbackController::class, 'store']);
 
 
 
@@ -473,6 +507,8 @@ Route::post('add_qtap_affiliate', [QtapAffiliateController::class, 'store']);
 
 //------------------affiliate-----------------
 Route::middleware('auth:qtap_affiliate')->group(function () {
+
+    Route::get('affiliate_transactions/{id}', [QtapAffiliateController::class, 'affiliate_transactions']);
 
     Route::get('get_sales_affiliate', [QtapAffiliateController::class, 'get_sales_affiliate'])->name('get_sales_affiliate');
     Route::get('get_myinfo', [QtapAffiliateController::class, 'get_myinfo'])->name('get_myinfo');

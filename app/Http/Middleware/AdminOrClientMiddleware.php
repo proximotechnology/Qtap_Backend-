@@ -15,11 +15,15 @@ class AdminOrClientMiddleware
      */
     public function handle($request, Closure $next)
     {
-        if (auth('qtap_admins')->check() || auth('qtap_clients')->check()) {
+        if (auth('qtap_admins')->check()) {
+            return $next($request);
+        }
+
+        $staffUser = auth('restaurant_user_staff')->user();
+        if ($staffUser && $staffUser->role === 'admin') {
             return $next($request);
         }
 
         return redirect()->route('login');
     }
-
 }

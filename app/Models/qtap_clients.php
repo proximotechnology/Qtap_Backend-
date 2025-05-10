@@ -27,6 +27,7 @@ class qtap_clients extends Authenticatable implements JWTSubject
         'email',
         'password',
         'img',
+        'otp',
         'user_type',
         'order_id',
     ];
