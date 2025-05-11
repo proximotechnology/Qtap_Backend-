@@ -36,6 +36,10 @@ class OrdersProcessingController extends Controller
     }
 
 
+    //----------------------get data-------------------------------------------------------------------------
+
+
+
     public function get_proccessing_orders($id)
     {
 
@@ -55,132 +59,6 @@ class OrdersProcessingController extends Controller
     }
 
 
-
-    public function accept_order(Request $request)
-    {
-
-        $request['user_id'] = auth()->user()->id;
-        $request['brunch_id'] = auth()->user()->brunch_id;
-        $request['stage'] = 'chef';
-
-
-        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'accepted')->first();
-
-        if ($order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order already accepted',
-            ]);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'order_id' => 'required|exists:orders,id',
-            'user_id' => 'required|exists:restaurant_user_staffs,id',
-            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
-            'status' => 'required|in:accepted,rejected',
-            'stage' => 'required|in:chef',
-            'note' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first(),
-            ]);
-        }
-
-
-        $orders_processing = orders_processing::create($request->all());
-
-        if ($request['status'] == 'rejected') {
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Order rejected successfully',
-                // 'orders_processing' => $orders_processing,
-            ]);
-        }
-
-        $type = 'accepted_order';
-
-        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
-
-
-        event(new notify_msg($order, $type));
-
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order accepted successfully',
-            'orders_processing' => $orders_processing,
-        ]);
-    }
-
-
-
-    public function order_prepared(Request $request)
-    {
-
-
-        $request['user_id'] = auth()->user()->id;
-        $request['brunch_id'] = auth()->user()->brunch_id;
-        $request['stage'] = 'chef';
-
-
-        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'prepared')->first();
-
-        if ($order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order already prepared',
-            ]);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'order_id' => 'required|exists:orders,id',
-            'user_id' => 'required|exists:restaurant_user_staffs,id',
-            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
-            'status' => 'required|in:prepared,rejected',
-            'stage' => 'required|in:chef',
-            'note' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first(),
-            ]);
-        }
-
-
-        $orders_processing = orders_processing::create($request->all());
-
-
-        if ($request['status'] == 'rejected') {
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Order rejected successfully',
-                // 'orders_processing' => $orders_processing,
-            ]);
-        }
-
-
-        $type = 'prepared_order';
-
-        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
-
-
-        event(new notify_msg($order, $type));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order prepared successfully',
-            'orders_processing' => $orders_processing,
-        ]);
-    }
-
-
     public function get_new_orders()
     {
         $brunch_id = auth()->user()->brunch_id;
@@ -195,83 +73,6 @@ class OrdersProcessingController extends Controller
         return response()->json([
             'success' => true,
             'new_orders' => $orders,
-        ]);
-    }
-
-
-
-
-
-    public function payment_received(Request $request)
-    {
-
-        $request['user_id'] = auth()->user()->id;
-        $request['brunch_id'] = auth()->user()->brunch_id;
-        $request['stage'] = 'cashier';
-
-
-        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'payment_received')->first();
-
-        if ($order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order already payment received',
-            ]);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'order_id' => 'required|exists:orders,id',
-            'user_id' => 'required|exists:restaurant_user_staffs,id',
-            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
-            'status' => 'required|in:payment_received,rejected',
-            'stage' => 'required|in:cashier',
-            'note' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first(),
-            ]);
-        }
-
-        $order = orders::find($request->order_id);
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order not found',
-            ]);
-        }
-
-        $order->update([
-            'payment_status' => 'paid',
-            'status' => 'confirmed',
-        ]);
-
-
-        $orders_processing = orders_processing::create($request->all());
-
-        if ($request['status'] == 'rejected') {
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Order rejected successfully',
-                // 'orders_processing' => $orders_processing,
-            ]);
-        }
-
-
-        $type = 'payment_received_order';
-
-        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
-
-
-        event(new notify_msg($order, $type));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order payment_received successfully',
-            'orders_processing' => $orders_processing,
         ]);
     }
 
@@ -311,133 +112,6 @@ class OrdersProcessingController extends Controller
         return response()->json([
             'success' => true,
             'accepted_orders' => $orders,
-        ]);
-    }
-
-
-
-
-    public function order_served(Request $request)
-    {
-
-        $request['user_id'] = auth()->user()->id;
-        $request['brunch_id'] = auth()->user()->brunch_id;
-        $request['stage'] = 'waiter';
-
-
-        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'served')->first();
-
-        if ($order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order already served',
-            ]);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'order_id' => 'required|exists:orders,id',
-            'user_id' => 'required|exists:restaurant_user_staffs,id',
-            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
-            'status' => 'required|in:served,rejected',
-            'stage' => 'required|in:waiter',
-            'note' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first(),
-            ]);
-        }
-
-
-
-        $orders_processing = orders_processing::create($request->all());
-
-        if ($request['status'] == 'rejected') {
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Order rejected successfully',
-                // 'orders_processing' => $orders_processing,
-            ]);
-        }
-
-
-        $type = 'served_order';
-
-        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
-
-
-        event(new notify_msg($order, $type));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order served successfully',
-            'orders_processing' => $orders_processing,
-        ]);
-    }
-
-
-
-    public function choose_delivery(Request $request)
-    {
-
-        $request['user_id'] = auth()->user()->id;
-        $request['brunch_id'] = auth()->user()->brunch_id;
-        $request['stage'] = 'delivery';
-
-
-        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'delivery')->first();
-
-        if ($order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order already assigned',
-            ]);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'order_id' => 'required|exists:orders,id',
-            'user_id' => 'required|exists:restaurant_user_staffs,id',
-            'delivery_rider_id' => 'required|exists:restaurant_user_staffs,id',
-            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
-            'status' => 'required|in:delivery,rejected',
-            'stage' => 'required|in:delivery',
-            'note' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first(),
-            ]);
-        }
-
-
-        $orders_processing = orders_processing::create($request->all());
-
-        if ($request['status'] == 'rejected') {
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Order rejected successfully',
-                // 'orders_processing' => $orders_processing,
-            ]);
-        }
-
-
-        $type = 'choose_delivery_order';
-
-        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
-
-
-        event(new notify_msg($order, $type));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order assigned successfully',
-            'orders_processing' => $orders_processing,
         ]);
     }
 
@@ -532,6 +206,396 @@ class OrdersProcessingController extends Controller
     }
 
 
+
+    public function get_delivered_orders()
+    {
+        $brunch_id = auth()->user()->brunch_id;
+        $orders = orders_processing::where('status', 'delivered')->where('brunch_id', $brunch_id)->get();
+
+        return response()->json([
+            'success' => true,
+            'delivered_orders' => $orders,
+        ]);
+    }
+
+    //-----------------------------------------------------------------------------------------------
+
+
+    public function accept_order(Request $request)
+    {
+
+        $request['user_id'] = auth()->user()->id;
+        $request['brunch_id'] = auth()->user()->brunch_id;
+        $request['stage'] = 'chef';
+
+
+        $order = orders_processing::with([
+            'orders_processing',
+            'orders_processing.user'
+        ])->where('order_id', $request->order_id)->where('status', 'accepted')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already accepted',
+            ]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+            'user_id' => 'required|exists:restaurant_user_staffs,id',
+            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
+            'status' => 'required|in:accepted,rejected',
+            'stage' => 'required|in:chef',
+            'note' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ]);
+        }
+
+
+        $orders_processing = orders_processing::create($request->all());
+
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
+
+        $type = 'accepted_order';
+        $order = orders::with([
+            'orders_processing',
+            'orders_processing.user'
+        ])->find($orders_processing->order_id);
+
+        $order = [$order];
+        event(new notify_msg($order, $type));
+        return response()->json([
+            'success' => true,
+            'message' => 'Order accepted successfully',
+            'orders_processing' => $orders_processing,
+        ]);
+    }
+
+
+
+    public function order_prepared(Request $request)
+    {
+
+        $request['user_id'] = auth()->user()->id;
+        $request['brunch_id'] = auth()->user()->brunch_id;
+        $request['stage'] = 'chef';
+
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'prepared')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already prepared',
+            ]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+            'user_id' => 'required|exists:restaurant_user_staffs,id',
+            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
+            'status' => 'required|in:prepared,rejected',
+            'stage' => 'required|in:chef',
+            'note' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ]);
+        }
+
+
+        $orders_processing = orders_processing::create($request->all());
+
+
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
+
+
+        $type = 'prepared_order';
+
+
+
+
+        $order = orders::with([
+            'orders_processing',
+            'orders_processing.user'
+        ])->find($orders_processing->order_id);
+
+
+        $order = [$order];
+
+
+        event(new notify_msg($order, $type));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order prepared successfully',
+            'orders_processing' => $orders_processing,
+        ]);
+    }
+
+
+
+
+
+
+
+    public function payment_received(Request $request)
+    {
+
+        $request['user_id'] = auth()->user()->id;
+        $request['brunch_id'] = auth()->user()->brunch_id;
+        $request['stage'] = 'cashier';
+
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'payment_received')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already payment received',
+            ]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+            'user_id' => 'required|exists:restaurant_user_staffs,id',
+            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
+            'status' => 'required|in:payment_received,rejected',
+            'stage' => 'required|in:cashier',
+            'note' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ]);
+        }
+
+        $order = orders::find($request->order_id);
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found',
+            ]);
+        }
+
+        $order->update([
+            'payment_status' => 'paid',
+            'status' => 'confirmed',
+        ]);
+
+
+        $orders_processing = orders_processing::create($request->all());
+
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
+
+
+        $type = 'payment_received_order';
+
+        // $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        $order = orders::with([
+            'orders_processing',
+            'orders_processing.user'
+        ])->find($orders_processing->order_id);
+
+
+        $order = [$order];
+
+
+        event(new notify_msg($order, $type));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order payment_received successfully',
+            'orders_processing' => $orders_processing,
+        ]);
+    }
+
+
+
+
+
+    public function order_served(Request $request)
+    {
+
+        $request['user_id'] = auth()->user()->id;
+        $request['brunch_id'] = auth()->user()->brunch_id;
+        $request['stage'] = 'waiter';
+
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'served')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already served',
+            ]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+            'user_id' => 'required|exists:restaurant_user_staffs,id',
+            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
+            'status' => 'required|in:served,rejected',
+            'stage' => 'required|in:waiter',
+            'note' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ]);
+        }
+
+
+
+        $orders_processing = orders_processing::create($request->all());
+
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
+
+
+        $type = 'served_order';
+
+        // $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        $order = orders::with([
+            'orders_processing',
+            'orders_processing.user'
+        ])->find($orders_processing->order_id);
+
+
+        $order = [$order];
+
+
+        event(new notify_msg($order, $type));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order served successfully',
+            'orders_processing' => $orders_processing,
+        ]);
+    }
+
+
+
+    public function choose_delivery(Request $request)
+    {
+
+        $request['user_id'] = auth()->user()->id;
+        $request['brunch_id'] = auth()->user()->brunch_id;
+        $request['stage'] = 'delivery';
+
+
+        $order = orders_processing::where('order_id', $request->order_id)->where('status', 'delivery')->first();
+
+        if ($order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already assigned',
+            ]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+            'user_id' => 'required|exists:restaurant_user_staffs,id',
+            'delivery_rider_id' => 'required|exists:restaurant_user_staffs,id',
+            'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
+            'status' => 'required|in:delivery,rejected',
+            'stage' => 'required|in:delivery',
+            'note' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ]);
+        }
+
+
+        $orders_processing = orders_processing::create($request->all());
+
+        if ($request['status'] == 'rejected') {
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order rejected successfully',
+                // 'orders_processing' => $orders_processing,
+            ]);
+        }
+
+
+        $type = 'choose_delivery_order';
+
+        // $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        $order = orders::with([
+            'orders_processing',
+            'orders_processing.user'
+        ])->find($orders_processing->order_id);
+
+
+
+        $order = [$order];
+
+
+        event(new notify_msg($order, $type));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order assigned successfully',
+            'orders_processing' => $orders_processing,
+        ]);
+    }
+
+
+
+
+
+
     public function order_done(Request $request)
     {
 
@@ -581,7 +645,17 @@ class OrdersProcessingController extends Controller
 
         $type = 'done_order';
 
-        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+        // $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+        $order = orders::with([
+            'orders_processing',
+            'orders_processing.user'
+        ])->find($orders_processing->order_id);
+
+
+
+        $order = [$order];
 
 
         event(new notify_msg($order, $type));
@@ -666,7 +740,18 @@ class OrdersProcessingController extends Controller
 
         $type = 'delivered_order';
 
-        $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+        // $order = orders::with('orders_processing')->where('id', $orders_processing->order_id)->get();
+
+
+
+        $order = orders::with([
+            'orders_processing',
+            'orders_processing.user'
+        ])->find($orders_processing->order_id);
+
+
+
+        $order = [$order];
 
 
         event(new notify_msg($order, $type));
@@ -675,17 +760,6 @@ class OrdersProcessingController extends Controller
             'success' => true,
             'message' => 'Order delivered successfully',
             'orders_processing' => $orders_processing,
-        ]);
-    }
-
-    public function get_delivered_orders()
-    {
-        $brunch_id = auth()->user()->brunch_id;
-        $orders = orders_processing::where('status', 'delivered')->where('brunch_id', $brunch_id)->get();
-
-        return response()->json([
-            'success' => true,
-            'delivered_orders' => $orders,
         ]);
     }
 }

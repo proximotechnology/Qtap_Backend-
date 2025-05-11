@@ -1302,6 +1302,18 @@ class QtapClientsController extends Controller
                                 ]);
                             }
                         }
+
+
+                        // تحديث طرق الخدمة
+                        if (isset($brunchData['payment_services'])) {
+                            payment_services::where('brunch_id', $branch->id)->forceDelete();
+                            foreach ($brunchData['payment_services'] as $way) {
+                                payment_services::create([
+                                    'brunch_id' => $branch->id,
+                                    'name' => $way['name']
+                                ]);
+                            }
+                        }
                     }
                 }
             }

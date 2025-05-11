@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+
 use App\Models\orders;
 use App\Models\qtap_clients_brunchs;
 use Illuminate\Http\Request;
@@ -30,8 +31,10 @@ class OrdersController extends Controller
         }
 
         $orders = orders::with(
-            'orders_processing',
-            'orders_processing.user',
+            [
+                'orders_processing',
+                'orders_processing.user',
+            ]
 
 
         )->where('brunch_id', $brunch_id)->get();
@@ -192,7 +195,7 @@ class OrdersController extends Controller
                     return response()->json([
                         'status' => 'success',
                         'message' => 'Order created successfully',
-                         'order' => $order,
+                        'order' => $order,
                         'payment_url' => $response['payment_url']
                     ], 201);
                 } else {
@@ -221,6 +224,50 @@ class OrdersController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function cancel_order(Request $request, $id)
+    {
+        $order = orders::with(['orders_processing', 'orders_processing.user'])->find($id);
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found'
+            ]);
+        }
+
+
+        if ($order->status == 'cancelled') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order already cancelled'
+            ]);
+        }
+
+
+
+        $order->update([
+            'status' => 'cancelled',
+        ]);
+
+
+        $type = 'cancel_order';
+
+
+
+
+
+
+        event(new notify_msg($order, $type));
+
+
+
+        return response()->json([
+            'success' => true,
+            'order' => $order,
+            'message' => 'Order cancelled successfully'
+        ]);
     }
 
 

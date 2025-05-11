@@ -262,6 +262,9 @@ Route::middleware('auth:qtap_admins')->group(function () {
 Route::get('products', [ProductsController::class, 'index']);
 Route::get('discount', [DiscountController::class, 'index']);
 
+Route::post('cancel_order/{id}', [OrdersController::class, 'cancel_order'])->name('cancel_order');
+
+
 
 Route::resource('faq_qtap', FaqQtapController::class);
 
