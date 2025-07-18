@@ -75,6 +75,10 @@ class qtap_clients extends Authenticatable implements JWTSubject
     }
 
 
+    public function ClientPricing(){
+
+        return $this->hasMany(ClientPricing::class );
+    }
 
 
 }

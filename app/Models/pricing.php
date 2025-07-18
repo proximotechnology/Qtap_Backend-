@@ -16,12 +16,22 @@ class pricing extends Model
 
 
 
-    public function qtap_clients_brunchs(){
+   /* public function qtap_clients_brunchs(){
 
         return $this->hasMany(qtap_clients_brunchs::class ,  'pricing_id');
     }
 
+*/
+    public function ClientPricing(){
 
+        return $this->hasMany(ClientPricing::class );
+    }
+
+
+    public function SubscriptionChangeRequest()
+    {
+            return $this->hasMany(SubscriptionChangeRequest::class);
+    }
 
 }
 

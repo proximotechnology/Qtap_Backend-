@@ -18,11 +18,11 @@ return new class extends Migration
 
 
             $table->unsignedBigInteger('currency_id');
-            $table->unsignedBigInteger('pricing_id');
+         //   $table->unsignedBigInteger('pricing_id');
             $table->unsignedBigInteger('discount_id')->nullable();
 
             $table->foreign('currency_id')->references('id')->on('currencies');
-            $table->foreign('pricing_id')->references('id')->on('pricings');
+          //  $table->foreign('pricing_id')->references('id')->on('pricings');
             $table->foreign('discount_id')->references('id')->on('discounts');
 
 

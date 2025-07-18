@@ -17,6 +17,7 @@ use App\Http\Controllers\WeServController;
 use App\Http\Controllers\QtapClientsController;
 use App\Http\Controllers\CustomerInfoController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ClientPricingController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TablesController;
@@ -95,11 +96,23 @@ Route::middleware('admin_or_client')->group(function () {
     Route::get('feedback_client', [FeedbackController::class, 'index']);
     Route::put('feedback_client/{id}', [FeedbackController::class, 'update']);
     Route::delete('feedback_client/{id}', [FeedbackController::class, 'destroy']);
+
+############BY_MAJD
+    Route::get('client/subscribtion/get_all', [ClientPricingController::class, 'clientSubscriptions']);
+    Route::get('client/subscribtion/show/{client_pricing_id}', [ClientPricingController::class, 'show_C']);
+    Route::post('client/subscribtion/chang_request/{client_pricing_id}', [ClientPricingController::class, 'requestSubscriptionChange']);
+    Route::get('client/subscribtion/chang_request/get_all_my_request', [ClientPricingController::class, 'getPendingChangeRequests']);
+    Route::delete('client/subscribtion/chang_request/delete/{client_pricing_id}', [ClientPricingController::class, 'cancelPendingRequest']);
+
+
+
 });
 
 //-------------------------------------------ADMIN OR AFFILIATE-----------------------------
 
 Route::middleware('admin_or_affiliate')->group(function () {
+
+
     Route::post('qtap_affiliate/{id}', [QtapAffiliateController::class, 'update']);
 });
 
@@ -112,6 +125,13 @@ Route::get('pricing', [PricingController::class, 'index'])->name('pricing');
 //---------------------------------------------ADMIN----------------------------------------
 
 Route::middleware('auth:qtap_admins')->group(function () {
+
+    #by_majd
+    Route::get('admin/subscribtion/get_all', [ClientPricingController::class, 'index']);
+    Route::post('admin/subscribtion/active/{client_pricing_id}', [ClientPricingController::class, 'activateSubscription']);
+    Route::get('admin/subscribtion/show/{client_pricing_id}', [ClientPricingController::class, 'show']);
+    Route::get('admin/subscribtion/change_request', [ClientPricingController::class, 'getPendingChangeRequestsAdmin']);
+    Route::get('admin/subscribtion/change_request/show/{id}', [ClientPricingController::class, 'showPendingRequestAdmin']);
 
 
     Route::get('affiliate_transactions_all', [QtapAffiliateController::class, 'affiliate_transactions_all'])->name('affiliate_transactions_all');

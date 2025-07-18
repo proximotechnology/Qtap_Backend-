@@ -15,7 +15,7 @@ class qtap_clients_brunchs extends Model
         'client_id',
         'contact_info_id',
         'currency_id',
-        'pricing_id',
+        //'pricing_id',
         'discount_id',
         'business_name',
         'business_country',
@@ -44,9 +44,12 @@ class qtap_clients_brunchs extends Model
         return $this->hasMany(role::class ,  'brunch_id', 'id')->select('id' , 'name' , 'brunch_id');
     }
 
-    public function pricing(){
+
+
+
+ /*   public function pricing(){
         return $this->belongsTo(pricing::class , 'pricing_id' , 'id');
-    }
+    }*/
 
 
     public function workschedule(){

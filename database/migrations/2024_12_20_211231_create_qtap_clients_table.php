@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('qtap_clients', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('mobile')->unique();
+            $table->string('mobile');
             $table->string('email')->unique();
             $table->date('birth_date')->nullable();
             $table->string('country')->nullable();
