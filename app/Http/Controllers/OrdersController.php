@@ -46,7 +46,7 @@ class OrdersController extends Controller
     }
 
 
-    public function store(Request $request)
+  /*  public function store(Request $request)
     {
         DB::beginTransaction();
 
@@ -224,7 +224,113 @@ class OrdersController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
-    }
+    }*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     public function cancel_order(Request $request, $id)
     {

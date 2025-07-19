@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
+use Illuminate\Support\Facades\Log;
 
 class qtap_clients_brunchs extends Model
 {
@@ -44,8 +44,52 @@ class qtap_clients_brunchs extends Model
         return $this->hasMany(role::class ,  'brunch_id', 'id')->select('id' , 'name' , 'brunch_id');
     }
 
+public function pricing()
+{
+    return $this->belongsTo(pricing::class, 'pricing_id', 'id')
+        ->withDefault(function() {
+            // إنشاء نموذج pricing فارغ بقيم افتراضية آمنة
+            $emptyPricing = new pricing();
 
+            // تعيين قيم افتراضية لجميع الحقول المهمة
+            $emptyPricing->id = 0; // قيمة غير موجودة في قاعدة البيانات
+            $emptyPricing->name = 'No Active Subscription';
+            $emptyPricing->orders_limit = 0;
+            $emptyPricing->monthly_price = 0;
+            $emptyPricing->yearly_price = 0;
+            $emptyPricing->is_active = 'inactive';
 
+            // محاولة جلب اشتراك العميل النشط
+            try {
+                if ($this->client &&
+                    $activeSubscription = $this->client->activeSubscription) {
+                    return $activeSubscription->pricing ?? $emptyPricing;
+                }
+            } catch (\Exception $e) {
+                // تسجيل الخطأ إذا لزم الأمر
+                Log::error('Error fetching active subscription: ' . $e->getMessage());
+            }
+
+            return $emptyPricing;
+        });
+}
+
+// خاصية مساعدة محسنة للحصول على الاشتراك النشط
+public function getActiveSubscriptionAttribute()
+{
+    try {
+        if ($this->client) {
+            return $this->client->clientPricings()
+                ->where('status', 'active')
+                ->latest()
+                ->first();
+        }
+    } catch (\Exception $e) {
+        Log::error('Error in getActiveSubscriptionAttribute: ' . $e->getMessage());
+    }
+
+    return null;
+}
 
  /*   public function pricing(){
         return $this->belongsTo(pricing::class , 'pricing_id' , 'id');

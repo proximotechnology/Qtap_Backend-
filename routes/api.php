@@ -132,6 +132,7 @@ Route::middleware('auth:qtap_admins')->group(function () {
     Route::get('admin/subscribtion/show/{client_pricing_id}', [ClientPricingController::class, 'show']);
     Route::get('admin/subscribtion/change_request', [ClientPricingController::class, 'getPendingChangeRequestsAdmin']);
     Route::get('admin/subscribtion/change_request/show/{id}', [ClientPricingController::class, 'showPendingRequestAdmin']);
+    Route::post('admin/subscribtion/update_change_request/{id}', [ClientPricingController::class, 'updateRequestStatus']);
 
 
     Route::get('affiliate_transactions_all', [QtapAffiliateController::class, 'affiliate_transactions_all'])->name('affiliate_transactions_all');

@@ -225,9 +225,9 @@ class QtapAdminsController extends Controller
 
         // $clients_active = qtap_clients::with('logs' , 'brunchs.pricing')->where('status', 'active')->get();
 
-        $clients_active = qtap_clients::with('logs', 'brunchs.pricing')->where('status', 'active')->get();
+        $clients_active = qtap_clients::with('logs', 'brunchs')->where('status', 'active')->get();
 
-        $qtap_clients_brunchs = qtap_clients_brunchs::with('pricing')->get();
+        $qtap_clients_brunchs = qtap_clients_brunchs::get();
 
 
 
