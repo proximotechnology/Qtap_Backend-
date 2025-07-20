@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Validator;
 
 
 use App\Events\notify_msg;
+use App\Models\ClientPricing;
+use App\Models\qtap_clients_brunchs;
+use Illuminate\Support\Facades\DB;
 
 class OrdersProcessingController extends Controller
 {
@@ -592,11 +595,101 @@ class OrdersProcessingController extends Controller
     }
 
 
-
-
-
-
     public function order_done(Request $request)
+    {
+        DB::beginTransaction();
+
+        try {
+            $request['user_id'] = auth()->user()->id;
+            $request['brunch_id'] = auth()->user()->brunch_id;
+            $request['stage'] = 'done';
+
+            // التحقق من عدم وجود طلب مكتمل بنفس الـ order_id
+            $order = orders_processing::where('order_id', $request->order_id)
+                    ->where('status', 'done')
+                    ->first();
+
+            if ($order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order already done',
+                ]);
+            }
+
+            // التحقق من صحة البيانات
+            $validator = Validator::make($request->all(), [
+                'order_id' => 'required|exists:orders,id',
+                'user_id' => 'required|exists:restaurant_user_staffs,id',
+                'brunch_id' => 'required|exists:qtap_clients_brunchs,id',
+                'status' => 'required|in:done,rejected',
+                'stage' => 'required|in:done',
+                'note' => 'nullable|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                ]);
+            }
+
+            // إنشاء سجل معالجة الطلب
+            $orders_processing = orders_processing::create($request->all());
+
+            // إذا كان الطلب مرفوضاً
+            if ($request['status'] == 'rejected') {
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Order rejected successfully',
+                ]);
+            }
+
+            // جلب الاشتراك النشط للفرع
+            $brunch = qtap_clients_brunchs::find($request->brunch_id);
+            $subscription = ClientPricing::where('client_id', $brunch->client_id)
+                            ->where('status', 'active')
+                            ->first();
+
+            if ($subscription) {
+                // خصم order واحد من الاشتراك
+                $subscription->decrement('ramin_order');
+
+                // إذا وصل عدد الطلبات إلى صفر، نقوم بتعطيل الاشتراك
+                if ($subscription->ramin_order <= 0) {
+                    $subscription->update(['status' => 'expired']);
+                }
+            }
+
+            // إرسال الإشعار
+            $type = 'done_order';
+            $order = orders::with(['orders_processing', 'orders_processing.user'])
+                    ->find($orders_processing->order_id);
+
+            event(new notify_msg([$order], $type));
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order done successfully',
+                'orders_processing' => $orders_processing,
+                'remaining_orders' => $subscription ? $subscription->ramin_order : null,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to complete order',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+
+  /*  public function order_done(Request $request)
     {
 
         $request['user_id'] = auth()->user()->id;
@@ -665,7 +758,7 @@ class OrdersProcessingController extends Controller
             'message' => 'Order done successfully',
             'orders_processing' => $orders_processing,
         ]);
-    }
+    }*/
 
 
 

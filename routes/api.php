@@ -40,6 +40,7 @@ use App\Http\Controllers\OrdersProcessingController;
 use App\Http\Controllers\FeedbackRestaurantController;
 use App\Http\Controllers\FaqQtapController;
 use App\Http\Controllers\ClientsTransactionsController;
+use App\Http\Controllers\GovernorateController;
 use App\Models\qtap_admins;
 
 use App\Http\Middleware\CheckClient;
@@ -541,3 +542,10 @@ Route::middleware('auth:qtap_affiliate')->group(function () {
 
 //------------------add qtap_clients--------
 Route::post('qtap_clients', [QtapClientsController::class, 'store']);
+
+
+
+Route::get('/governorates', [GovernorateController::class, 'getGovernorates']);
+Route::get('/governorates/cities/{governorateId}', [GovernorateController::class, 'getCitiesByGovernorate']);
+
+
