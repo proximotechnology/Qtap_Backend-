@@ -110,7 +110,7 @@ class QtapAdminsController extends Controller
 
 
 
-    public function Performance($startYear, $endYear)
+   /* public function Performance($startYear, $endYear)
     {
         // تحديد بداية ونهاية السنة الأولى (startYear)
         $startDate1 = $startYear . '-01-01';
@@ -147,80 +147,79 @@ class QtapAdminsController extends Controller
             'Subscriptions_' . $endYear => $Subscriptions2,
             'Orders_' . $endYear => $Orders2,
         ]);
+    }*/
+
+
+
+
+
+public function Sales_by_days($days)
+{
+    // Validate input days
+    if (!is_numeric($days) || $days <= 0) {
+        return response()->json(['error' => 'Invalid number of days.']);
     }
 
+    // Query to get branches count and revenue for each day in current year
+    $revenuePerDay = Revenue::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, DAY(created_at) as day, SUM(value) as total_revenue, MIN(created_at) as created_at')
+        ->whereYear('created_at', date('Y'))
+        ->groupBy('year', 'month', 'day')
+        ->orderBy('created_at', 'asc')
+        ->get();
 
+    // Format the data with date and revenue
+    $revenueData = $revenuePerDay->map(function ($item) {
+        return [
+            'date' => $item->year . '-' . sprintf('%02d', $item->month) . '-' . sprintf('%02d', $item->day),
+            'total_revenue' => $item->total_revenue,
+        ];
+    });
 
-    public function Sales_by_days($days)
-    {
-        // تحقق من أن الأيام المدخلة صحيحة
-        if (!is_numeric($days) || $days <= 0) {
-            return response()->json(['error' => 'عدد الأيام غير صحيح.']);
-        }
+    // Calculate weeks
+    $totalWeeks = ceil($days / 7);
+    $remainingDays = $days % 7;
 
-        // استعلام للحصول على عدد الأفرع وقيمة الأرباح لكل يوم في السنة الحالية
-        $revenuePerDay = Revenue::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, DAY(created_at) as day, SUM(value) as total_revenue, MIN(created_at) as created_at')
-    ->whereYear('created_at', date('Y'))
-    ->groupBy('year', 'month', 'day')
-    ->orderBy('created_at', 'asc') // الآن هذا created_at هو الناتج من MIN()
-    ->get();
+    // Group days into weeks
+    $weeks = [];
+    $currentWeek = 1;
+    $currentWeekRevenue = 0;
+    $currentDays = 0;
 
-
-        // تحويل البيانات إلى مصفوفة تحتوي على تاريخ اليوم وقيمة الربح
-        $revenueData = $revenuePerDay->map(function ($item) {
-            return [
-                'date' => $item->year . '-' . sprintf('%02d', $item->month) . '-' . sprintf('%02d', $item->day),
-                'total_revenue' => $item->total_revenue,
-            ];
-        });
-
-        // حساب عدد الأسابيع (تقريبًا) بناءً على الأيام المدخلة
-        $totalWeeks = ceil($days / 7); // حساب الأسابيع بشكل تقريبي
-        $remainingDays = $days % 7; // الأيام المتبقية
-
-        // تقسيم الأيام إلى أسابيع بناءً على الأيام المدخلة
-        $weeks = [];
-        $currentWeek = 1;
+    for ($week = 1; $week <= $totalWeeks; $week++) {
         $currentWeekRevenue = 0;
-        $currentDays = 0;
+        $currentWeekDays = 0;
 
-        // إنشاء جميع الأسابيع المطلوبة
-        for ($week = 1; $week <= $totalWeeks; $week++) {
-            $currentWeekRevenue = 0;
-            $currentWeekDays = 0;
-
-            // إضافة الأيام لهذا الأسبوع
-            while ($currentDays < $days && $currentWeekDays < 7) {
-                if (isset($revenueData[$currentDays])) {
-                    $currentWeekRevenue += $revenueData[$currentDays]['total_revenue'] ?? 0;
-                }
-                $currentDays++;
-                $currentWeekDays++;
+        while ($currentDays < $days && $currentWeekDays < 7) {
+            if (isset($revenueData[$currentDays])) {
+                $currentWeekRevenue += $revenueData[$currentDays]['total_revenue'] ?? 0;
             }
-
-            // إضافة الأسبوع إلى المصفوفة
-            $weeks[] = [
-                'week' => 'الأسبوع ' . $week,
-                'start_date' => ($currentWeekDays > 0 && isset($revenueData[$currentDays - $currentWeekDays])) ? $revenueData[$currentDays - $currentWeekDays]['date'] : 'غير متوفر',
-                'end_date' => ($currentWeekDays > 0 && isset($revenueData[$currentDays - 1])) ? $revenueData[$currentDays - 1]['date'] : 'غير متوفر',
-                'total_revenue' => $currentWeekRevenue
-            ];
+            $currentDays++;
+            $currentWeekDays++;
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $weeks,
-            'total_revenue' => array_sum(array_column($weeks, 'total_revenue')),
-
-        ]);
+        $weeks[] = [
+            'week' => 'Week ' . $week,
+            'start_date' => ($currentWeekDays > 0 && isset($revenueData[$currentDays - $currentWeekDays])) ?
+                $revenueData[$currentDays - $currentWeekDays]['date'] : 'N/A',
+            'end_date' => ($currentWeekDays > 0 && isset($revenueData[$currentDays - 1])) ?
+                $revenueData[$currentDays - 1]['date'] : 'N/A',
+            'revenue' => $currentWeekRevenue
+        ];
     }
 
+    return response()->json([
+        'success' => true,
+        'data' => $weeks,
+        'total' => array_sum(array_column($weeks, 'revenue')),
+        'period' => $days . ' days',
+        'weeks_count' => $totalWeeks
+    ]);
+}
 
 
 
 
-
-    public function dashboard()
+   /* public function dashboard()
     {
 
         // $clients_active = qtap_clients::with('logs' , 'brunchs.pricing')->where('status', 'active')->get();
@@ -341,6 +340,90 @@ class QtapAdminsController extends Controller
             // "qtap_clients_brunchs" => $qtap_clients_brunchs,
             // "affiliate" => $qtap_affiliate,
             // "clients_inactive" => $clients_inactive
+        ]);
+    }*/
+        public function dashboard()
+    {
+        $clients_active = qtap_clients::with('logs', 'brunchs')->where('status', 'active')->get();
+        $allBranchesCount = qtap_clients_brunchs::count();
+
+        //---------------Clients Log chart------------------------------------------------------
+        $today = Carbon::today();
+        $Clients_Log = clients_logs::whereDate('created_at', $today)->get();
+
+        //---------------Affiliate Users chart------------------------------------------------------
+        $activeAffiliates = \App\Models\qtap_affiliate::where('status', 'active')->count();
+        $totalAffiliates = \App\Models\qtap_affiliate::count();
+        $activePercentage = $totalAffiliates > 0 ? round(($activeAffiliates / $totalAffiliates) * 100, 2) : 0;
+        $inactivePercentage = $totalAffiliates > 0 ? round((($totalAffiliates - $activeAffiliates) / $totalAffiliates) * 100, 2) : 0;
+
+        $Affiliate_Users = [
+            'totalAffiliates' => $totalAffiliates,
+            'active_percentage' => $activePercentage . '%',
+            'inactive_percentage' => $inactivePercentage . '%',
+        ];
+
+        //---------------Total Orders chart------------------------------------------------------
+        $branchesPerMonth = orders::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(id) as total_branches')
+            ->whereYear('created_at', date('Y'))
+            ->groupBy('year', 'month')
+            ->orderBy('month', 'asc')
+            ->get()
+            ->keyBy('month');
+
+        $allMonths = collect([
+            1 => 'Jan',
+            2 => 'Feb',
+            3 => 'Mar',
+            4 => 'Apr',
+            5 => 'May',
+            6 => 'Jun',
+            7 => 'Jul',
+            8 => 'Aug',
+            9 => 'Sep',
+            10 => 'Oct',
+            11 => 'Nov',
+            12 => 'Dec'
+        ]);
+        $branchesPerMonthWithAllMonths = $allMonths->map(function ($monthName, $monthNumber) use ($branchesPerMonth) {
+            $branchData = $branchesPerMonth->get($monthNumber);
+            return [
+                'month_name' => $monthName,
+                'total_order' => $branchData ? $branchData->total_branches : 0
+            ];
+        });
+
+        //---------------Client chart (Modified version without pricing-branch relationship)------
+        $Client = [
+            'number_branches_clients' => $allBranchesCount,
+            'packages' => []
+        ];
+
+        // إذا كنت تريد إحصائيات الباقات من مكان آخر (مثل اشتراكات العملاء)
+        if (class_exists(\App\Models\ClientPricing::class)) {
+            $packageStats = \App\Models\ClientPricing::with('pricing')
+                ->where('status', 'active')
+                ->get()
+                ->groupBy('pricing.name')
+                ->map(function ($subscriptions, $name) use ($allBranchesCount) {
+                    return [
+                        'name' => $name,
+                        'qtap_clients_brunchs_count' => $subscriptions->count(),
+                        'percentage' => $allBranchesCount > 0 ?
+                            round(($subscriptions->count() / $allBranchesCount) * 100, 2) . '%' : '0%'
+                    ];
+                });
+
+            $Client['packages'] = $packageStats->values();
+        }
+
+        return response()->json([
+            "success" => true,
+            "Clients_Log" => $Clients_Log,
+            "Client" => $Client,
+            "Total_Orders" => $branchesPerMonthWithAllMonths,
+            'total_orders' => $branchesPerMonthWithAllMonths->sum('total_order'),
+            "Affiliate_Users" => $Affiliate_Users,
         ]);
     }
 
