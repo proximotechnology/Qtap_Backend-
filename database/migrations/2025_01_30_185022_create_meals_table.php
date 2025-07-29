@@ -22,10 +22,9 @@ return new class extends Migration
             $table->string('Time')->nullable();
             $table->string('Tax')->nullable();
             $table->string('price');
+             $table->integer('discount_precentage')->default(0)->nullable();
 
             // Foreign key for discounts
-            $table->unsignedBigInteger('discount_id')->nullable();
-            $table->foreign('discount_id')->references('id')->on('meals_discounts')->onDelete('cascade');
 
             // Foreign key for categories
             $table->unsignedBigInteger('categories_id');

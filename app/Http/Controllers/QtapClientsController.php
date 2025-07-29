@@ -1841,23 +1841,27 @@ class QtapClientsController extends Controller
         ]);
     }
 
-    public function menu_all_restaurants()
-    {
-        $menu = qtap_clients::with([
-            'brunchs',
+   public function menu_all_restaurants()
+{
+    $menu = qtap_clients::with([
+            'brunchs' => function($query) {
+                $query->where('status', 'active');
+            },
             'brunchs.cat_meal',
             'brunchs.cat_meal.meals',
             'brunchs.cat_meal.meals.variants',
             'brunchs.cat_meal.meals.extras',
             'brunchs.cat_meal.meals.meals_special_offer',
             'brunchs.cat_meal.meals.discounts'
-        ])->get();
+        ])
+        ->where('status', 'active') // هذه هي السطر المهم الذي يضمن تصفية العملاء النشطين فقط
+        ->get();
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $menu
-        ]);
-    }
+    return response()->json([
+        'status' => 'success',
+        'data' => $menu
+    ]);
+}
 
     public function menu_by_table($tableId, $brunchId)
     {

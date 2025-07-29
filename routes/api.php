@@ -60,6 +60,7 @@ use App\Http\Middleware\CheckClient;
 //-----------------------------------------AUTH------------------------
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
+Route::post('/checkCookies', [AuthController::class, 'checkAuth']);
 
 
 //------------------------------------------WEBSITE---------------------------------------

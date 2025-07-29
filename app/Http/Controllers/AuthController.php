@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Mail;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth; // أضف هذا لضمان عمل Auth بشكل صحيح
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -127,7 +128,7 @@ class AuthController extends Controller
         }
     }
 
-    public function login(Request $request)
+  /*  public function login(Request $request)
     {
 
 
@@ -222,9 +223,9 @@ class AuthController extends Controller
                 'user' => $user,
             ]);
         }
-    }
+    }*/
 
-    public function logout(Request $request)
+    /*public function logout(Request $request)
     {
 
 
@@ -258,7 +259,282 @@ class AuthController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'No user logged in']);
+    }*/
+
+    public function login(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|string|email',
+            'password' => 'required|string',
+            'pin' => 'sometimes|string',
+            'brunch_id' => 'sometimes|integer|exists:qtap_clients_brunchs,id',
+            'user_type' => 'required|in:qtap_admins,qtap_clients,qtap_affiliates',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        if ($request->user_type != 'qtap_clients') {
+            $credentials = $request->only('email', 'password', 'user_type');
+            $user = null;
+
+            if ($token = Auth::guard('qtap_admins')->attempt($credentials)) {
+                $user = Auth::guard('qtap_admins')->user();
+            } elseif ($token = Auth::guard('qtap_affiliate')->attempt($credentials)) {
+                $user = Auth::guard('qtap_affiliate')->user();
+
+                if ($user->status !== 'active') {
+                    return response()->json(['error' => 'User is not active'], 401);
+                }
+
+                affiliate_log::create([
+                    'affiliate_id' => $user->id,
+                    'status' => 'active',
+                ]);
+            } else {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+        } else {
+            $user = restaurant_user_staff::where('pin', $request->pin)
+                ->where('email', $request->email)
+                ->where('brunch_id', $request->brunch_id)
+                ->where('user_type', $request->user_type)
+                ->first();
+
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                return response()->json(['error' => 'Unauthorized - Invalid pin or password or phone'], 401);
+            }
+
+            $token = Auth::guard('restaurant_user_staff')->login($user);
+
+            if ($user->role == 'delivery_rider' && $request['phone'] && $request['phone'] != $user->phone) {
+                return response()->json(['error' => 'Unauthorized - Invalid phone'], 401);
+            }
+
+            users_logs::create([
+                'user_id' => $user->id,
+                'brunch_id' => $user->brunch_id,
+                'status' => 'active',
+            ]);
+        }
+
+        $response = response()->json([
+            'token' => $token,
+            'user' => $user,
+        ]);
+
+        return $response->cookie(
+            'qutap_auth',
+            $token,
+            60 * 24 * 7, // 7 أيام
+            '/',
+            null, // للعمل على جميع النطاقات المحلية
+            false, // secure
+            false, // httpOnly
+            false,
+            'lax'
+        );
     }
+
+    public function checkAuth(Request $request)
+{
+    try {
+        if (!$token = $request->cookie('qutap_auth')) {
+            return response()->json(['authenticated' => false], 401);
+        }
+
+        // تحديد الجارد بناءً على نوع المستخدم
+        $user = Auth::guard('restaurant_user_staff')->setToken($token)->user();
+
+        if (!$user) {
+            return response()->json([
+                'authenticated' => true,
+                'user' => false
+            ]);
+        }
+
+        return response()->json([
+            'authenticated' => true,
+            'user' => $user
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'authenticated' => false,
+            'message' => 'Authentication error'
+        ], 401);
+    }
+}
+
+    public function logout(Request $request)
+    {
+        if (auth()->check()) {
+            if (auth()->user()->user_type == 'qtap_clients') {
+                users_logs::create([
+                    'user_id' => auth()->user()->id,
+                    'brunch_id' => auth()->user()->brunch_id,
+                    'action' => 'inactive',
+                ]);
+            } elseif (auth()->user()->user_type == 'qtap_affiliates') {
+                affiliate_log::create([
+                    'user_id' => auth()->user()->id,
+                    'action' => 'inactive',
+                ]);
+            }
+
+            JWTAuth::invalidate(JWTAuth::getToken());
+            Auth::logout();
+
+            return response()->json(['success' => true, 'message' => 'Logout successful'])
+                ->cookie('qutap_auth', null, -1);
+        }
+
+        return response()->json(['success' => false, 'message' => 'No user logged in']);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

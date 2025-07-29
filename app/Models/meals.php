@@ -19,7 +19,7 @@ class meals extends Model
         'Time',
         'Tax',
         'price',
-        'discount_id',
+        'discount_precentage',
         'categories_id',
         'brunch_id',
         'price_small',
@@ -40,10 +40,7 @@ class meals extends Model
         return $this->hasMany(meals_extra::class, 'meals_id');
     }
 
-    public function discounts()
-    {
-        return $this->belongsTo(meals_discount::class, 'discount_id', 'id');
-    }
+
     public function meals_special_offer(){
 
         return $this->hasMany(meals_special_offers::class , 'meals_id' , 'id');

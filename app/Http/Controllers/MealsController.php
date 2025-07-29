@@ -108,7 +108,7 @@ class MealsController extends Controller
             'Time' => 'nullable|string',
             'Tax' => 'nullable|numeric',
             'price' => 'required|numeric',
-            'discount_id' => 'nullable|integer',
+            'discount_precentage' => 'nullable|integer|min:0|max:100',
             'limit_variants' => 'nullable|integer',
             'categories_id' => 'required|integer',
             'brunch_id' => 'required|integer|exists:qtap_clients_brunchs,id',
@@ -141,7 +141,7 @@ class MealsController extends Controller
                 'Time',
                 'Tax',
                 'price',
-                'discount_id',
+                'discount_precentage',
                 'categories_id',
                 'brunch_id',
                 'price_small',
@@ -199,6 +199,32 @@ class MealsController extends Controller
             ], 500);
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
