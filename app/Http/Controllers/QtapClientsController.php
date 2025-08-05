@@ -1813,7 +1813,7 @@ class QtapClientsController extends Controller
             'meals.variants',
             'meals.extras',
             'meals.meals_special_offer',
-            'meals.discounts'
+            //'meals.discounts'
         )->where('brunch_id', $id)->get();
 
         $customers__visits = Customers_Visits_restaurant::where('brunch_id', $id)->first();
@@ -1852,7 +1852,7 @@ class QtapClientsController extends Controller
             'brunchs.cat_meal.meals.variants',
             'brunchs.cat_meal.meals.extras',
             'brunchs.cat_meal.meals.meals_special_offer',
-            'brunchs.cat_meal.meals.discounts'
+           // 'brunchs.cat_meal.meals.discounts'
         ])
         ->where('status', 'active') // هذه هي السطر المهم الذي يضمن تصفية العملاء النشطين فقط
         ->get();
@@ -1870,7 +1870,7 @@ class QtapClientsController extends Controller
             'meals.variants',
             'meals.extras',
             'meals.meals_special_offer',
-            'meals.discounts'
+          //  'meals.discounts'
         )->where('brunch_id', $brunchId)->get();
 
         $customersVisit = Customers_Visits_restaurant::where('brunch_id', $brunchId)->first();
@@ -1936,18 +1936,18 @@ class QtapClientsController extends Controller
 
         // إنشاء مصفوفة تحتوي على جميع الأشهر
         $allMonths = collect([
-            1 => 'يناير',
-            2 => 'فبراير',
-            3 => 'مارس',
-            4 => 'أبريل',
-            5 => 'مايو',
-            6 => 'يونيو',
-            7 => 'يوليو',
-            8 => 'أغسطس',
-            9 => 'سبتمبر',
-            10 => 'أكتوبر',
-            11 => 'نوفمبر',
-            12 => 'ديسمبر'
+            1 => 'Jan',
+            2 => 'Feb',
+            3 => 'Mar',
+            4 => 'Apr',
+            5 => 'May',
+            6 => 'Jun',
+            7 => 'Jul',
+            8 => 'Aug',
+            9 => 'Sep',
+            10 => 'Oct',
+            11 => 'Nov',
+            12 => 'Dec'
         ]);
 
         // دمج الأشهر مع عدد الأفرع
@@ -2059,18 +2059,18 @@ class QtapClientsController extends Controller
 
         // إنشاء مصفوفة تحتوي على جميع الأشهر
         $allMonths = collect([
-            1 => 'يناير',
-            2 => 'فبراير',
-            3 => 'مارس',
-            4 => 'أبريل',
-            5 => 'مايو',
-            6 => 'يونيو',
-            7 => 'يوليو',
-            8 => 'أغسطس',
-            9 => 'سبتمبر',
-            10 => 'أكتوبر',
-            11 => 'نوفمبر',
-            12 => 'ديسمبر'
+            1 => 'Jan',
+            2 => 'Feb',
+            3 => 'Mar',
+            4 => 'Apr',
+            5 => 'May',
+            6 => 'Jun',
+            7 => 'Jul',
+            8 => 'Aug',
+            9 => 'Sep',
+            10 => 'Oct',
+            11 => 'Nov',
+            12 => 'Dec'
         ]);
 
         // دمج الأشهر مع عدد الأفرع والأرباح
