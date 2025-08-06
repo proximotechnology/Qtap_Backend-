@@ -338,34 +338,34 @@ class AuthController extends Controller
     }
 
     public function checkAuth(Request $request)
-{
-    try {
-        if (!$token = $request->cookie('qutap_auth')) {
-            return response()->json(['authenticated' => false], 401);
-        }
+    {
+        try {
+            if (!$token = $request->cookie('qutap_auth')) {
+                return response()->json(['authenticated' => false], 401);
+            }
 
-        // تحديد الجارد بناءً على نوع المستخدم
-        $user = Auth::guard('restaurant_user_staff')->setToken($token)->user();
+            // تحديد الجارد بناءً على نوع المستخدم
+            $user = Auth::guard('restaurant_user_staff')->setToken($token)->user();
 
-        if (!$user) {
+            if (!$user) {
+                return response()->json([
+                    'authenticated' => true,
+                    'user' => false
+                ]);
+            }
+
             return response()->json([
                 'authenticated' => true,
-                'user' => false
+                'user' => $user
             ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'authenticated' => false,
+                'message' => 'Authentication error'
+            ], 401);
         }
-
-        return response()->json([
-            'authenticated' => true,
-            'user' => $user
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'authenticated' => false,
-            'message' => 'Authentication error'
-        ], 401);
     }
-}
 
     public function logout(Request $request)
     {
