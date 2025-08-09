@@ -34,6 +34,8 @@ class orders extends Model
         "size_id",
         "quantity",
         "payment_way",
+            "subtotal",
+
         "size",
         "brunch_id"
     ];

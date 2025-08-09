@@ -339,6 +339,7 @@ public function store(Request $request)
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'table_id' => $request->table_id,
+            'subtotal' => $subTotal, // أضف هذا السطر
             'discount_code' => $request->discount_code,
             'meal_id' => json_encode(collect($request->meals)->pluck('meal_id')),
             'quantity' => json_encode(collect($request->meals)->pluck('quantity')),
