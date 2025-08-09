@@ -1850,6 +1850,7 @@ class QtapClientsController extends Controller
             'brunchs.cat_meal',
             'brunchs.cat_meal.meals',
             'brunchs.cat_meal.meals.variants',
+            'brunchs.serving_ways',
             'brunchs.cat_meal.meals.extras',
             'brunchs.cat_meal.meals.meals_special_offer',
            // 'brunchs.cat_meal.meals.discounts'
