@@ -104,7 +104,9 @@ class AuthController extends Controller
             }
 
             $token = JWTAuth::fromUser($user);
-
+            $otp = rand(100000, 999999);
+            $user->update(['otp' => $otp]);
+            Mail::to($user->email)->send(new OTPMail($otp, 'تأكيد البريد الإلكتروني'));
             return response()->json([
                 'status' => 'success',
                 'message' => 'تم تسجيل المستخدم بنجاح.',
@@ -128,138 +130,6 @@ class AuthController extends Controller
         }
     }
 
-  /*  public function login(Request $request)
-    {
-
-
-
-        $validator = Validator::make($request->all(), ([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-            'pin' => 'sometimes|string',
-            'brunch_id' => 'sometimes|integer|exists:qtap_clients_brunchs,id',
-            'user_type' => 'required|in:qtap_admins,qtap_clients,qtap_affiliates',
-        ]));
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-
-        if ($request->user_type != 'qtap_clients') {
-            // dd($request->all());
-
-            $credentials = $request->only('email', 'password',  'user_type');  // التحقق من الـ email و password
-            $user = null;
-
-            if ($token = Auth::guard('qtap_admins')->attempt($credentials)) {
-
-                $user = Auth::guard('qtap_admins')->user();
-
-                // dd($user);
-
-                if ($user) {
-                    return response()->json([
-                        'token' => $token,
-                        'user' => $user,
-                    ]);
-                }
-            } elseif ($token = Auth::guard('qtap_affiliate')->attempt($credentials)) {
-
-                $user = Auth::guard('qtap_affiliate')->user();
-
-                if ($user->status !== 'active') {
-                    return response()->json(['error' => 'User is not active'], 401);
-                }
-
-
-                affiliate_log::create([
-                    'affiliate_id' => $user->id,
-                    'status' => 'active',
-                ]);
-
-
-                if ($user) {
-                    return response()->json([
-                        'token' => $token,
-                        'user' => $user,
-                    ]);
-                }
-            } else {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-        } else {
-
-
-            $user =  restaurant_user_staff::where('pin', $request->pin)->where('email', $request->email)
-                ->where('brunch_id', $request->brunch_id)->where('role', $request->role)->where('user_type', $request->user_type)
-                ->first();
-
-
-            if (!$user || !Hash::check($request->password, $user->password)) {
-                return response()->json(['error' => 'Unauthorized - Invalid pin or password or phone'], 401);
-            }
-
-            // إصدار التوكن
-            $token = Auth::guard('restaurant_user_staff')->login($user);
-
-            // تحقق إضافي من رقم الهاتف إذا كان role = delivery_rider
-            if ($user->role == 'delivery_rider' && $request['phone'] && $request['phone'] != $user->phone) {
-                return response()->json(['error' => 'Unauthorized - Invalid phone'], 401);
-            }
-
-            // جلب الفروع وربما إضافتها للرد
-            $brunches = qtap_clients_brunchs::where('client_id', $user->user_id)->get();
-
-            // سجل الدخول في logs
-            users_logs::create([
-                'user_id' => $user->id,
-                'brunch_id' => $user->brunch_id,
-                'status' => 'active',
-            ]);
-
-            return response()->json([
-                'token' => $token,
-                'user' => $user,
-            ]);
-        }
-    }*/
-
-    /*public function logout(Request $request)
-    {
-
-
-        if (auth()->check()) {
-
-
-            if (auth()->user()->user_type == 'qtap_clients') {
-
-                // تسجيل السجل عند تسجيل الخروج
-                users_logs::create([
-                    'user_id' => auth()->user()->id,
-                    'brunch_id' => auth()->user()->brunch_id,
-                    'action' => 'inactive',
-                ]);
-            } else if (auth()->user()->user_type == 'qtap_affiliates') {
-
-                // تسجيل السجل عند تسجيل الخروج
-                affiliate_log::create([
-                    'user_id' => auth()->user()->id,
-                    'action' => 'inactive',
-                ]);
-            }
-
-            // إبطال التوكن الحالي (إذا كنت تستخدم JWT)
-            JWTAuth::invalidate(JWTAuth::getToken());
-
-            // تسجيل الخروج
-            Auth::logout();
-
-            return response()->json(['success' => true, 'message' => 'Logout successful']);
-        }
-
-        return response()->json(['success' => false, 'message' => 'No user logged in']);
-    }*/
 
     public function login(Request $request)
     {
