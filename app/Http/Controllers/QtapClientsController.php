@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 use App\Mail\OTPMail;
+use App\Models\coup_plan;
 
 use Illuminate\Support\Facades\Mail;
 
@@ -428,7 +429,7 @@ class QtapClientsController extends Controller
     }
 */
 
-    public function store(Request $request)
+ /*   public function store(Request $request)
     {
         try {
             DB::beginTransaction(); // ✅ بدء المعاملة
@@ -670,7 +671,320 @@ class QtapClientsController extends Controller
             ], 500);
         }
     }
+*/
 
+    public function store(Request $request)
+    {
+        DB::beginTransaction();
+
+        try {
+            // 1. التحقق من وجود عميل غير نشط بنفس البريد وحذفه إذا وجد
+            $inactiveClient = qtap_clients::where('email', $request->email)
+                                        ->where('status', 'inactive')
+                                        ->first();
+            if ($inactiveClient) {
+                $inactiveClient->forceDelete();
+            }
+
+            // 2. التحقق من صحة البيانات المدخلة
+            $validatedData = $request->validate([
+                'name' => 'required|string|max:255',
+                'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'country' => 'nullable|string|max:255',
+                'mobile' => 'required|string|max:20',
+                'birth_date' => 'nullable|date',
+                'email' => 'required|email|max:255|unique:qtap_clients,email',
+                'status' => 'nullable|in:active,inactive',
+                'password' => 'required|string',
+                'user_type' => 'nullable|in:qtap_clients',
+                'pricing_id' => 'required|integer|exists:pricings,id',
+                'pricing_way' => 'required|in:monthly_price,yearly_price',
+                'affiliate_code' => 'nullable|string|max:8',
+                'contact_info' => 'nullable|array',
+                'coupn_plan_code' => 'nullable|string|exists:coup_plans,code',
+                'payment_method' => 'required|in:cash,online'
+            ]);
+
+            // 3. حساب عدد الفروع
+            $branches = collect($request->all())->filter(function ($value, $key) {
+                return Str::startsWith($key, 'branch_');
+            })->values()->toArray();
+            $branchesCount = count($branches);
+
+            // 4. الحصول على خطة التسعير
+            $pricing = pricing::findOrFail($request->pricing_id);
+            $basePrice = $pricing->{$request->pricing_way};
+
+            // 5. حساب السعر الأصلي بدون خصم
+            $originalTotal = $basePrice;
+            if ($branchesCount == 2) {
+                $originalTotal = $basePrice * 1.5;
+            } elseif ($branchesCount == 3) {
+                $originalTotal = $basePrice * 2;
+            } elseif ($branchesCount > 3) {
+                $originalTotal = ($basePrice * 2) + (($branchesCount - 3) * $basePrice * 0.5);
+            }
+
+            // 6. تطبيق الخصم إذا وجد
+            $discountPercentage = 0;
+            $discountAmount = 0;
+            $couponDetails = null;
+            $couponCode = null;
+
+            if ($request->filled('coupn_plan_code')) {
+                $coupon = coup_plan::where('code', $request->coupn_plan_code)
+                                ->where('status', 'active')
+                                ->first();
+
+                if ($coupon) {
+                    $discountPercentage = $coupon->discount;
+                    $discountAmount = $originalTotal * ($discountPercentage / 100);
+                    $couponCode = $coupon->code;
+                    $couponDetails = [
+                        'coupon_id' => $coupon->id,
+                        'discount_type' => 'percentage',
+                        'discount_value' => $coupon->discount,
+
+                    ];
+                }
+            }
+
+            $discountedPrice = $originalTotal - $discountAmount;
+            $finalPrice = max(0, $discountedPrice); // التأكد من أن السعر النهائي ليس سالباً
+
+            // 7. إنشاء العميل
+            $clientData = [
+                'name' => $validatedData['name'],
+                'country' => $validatedData['country'] ?? null,
+                'mobile' => $validatedData['mobile'],
+                'birth_date' => $validatedData['birth_date'] ?? null,
+                'email' => $validatedData['email'],
+                'password' => Hash::make($validatedData['password']),
+                'user_type' => $validatedData['user_type'] ?? 'qtap_clients',
+                'payment_method' => $validatedData['payment_method'],
+                'status' => 'inactive'
+            ];
+
+            if ($request->hasFile('img')) {
+                $path = $request->file('img')->store('public/clients');
+                $clientData['img'] = str_replace('public/', 'storage/', $path);
+            }
+
+            $client = qtap_clients::create($clientData);
+
+            // 8. إنشاء وإرسال OTP
+            $otp = rand(100000, 999999);
+            $client->update(['otp' => $otp]);
+            Mail::to($client->email)->send(new OtpMail($otp , 'test'));
+
+            // 9. إنشاء تسعير العميل مع كل التفاصيل
+            $clientPricing = ClientPricing::create([
+                'client_id' => $client->id,
+                'pricing_id' => $pricing->id,
+                'ramin_order' => $pricing->orders_limit,
+                'expired_at' => now()->add($request->pricing_way === 'yearly_price' ? 1 : 0, 'year')
+                                    ->addMonth(),
+                'payment_methodes' => $request->payment_method,
+                'pricing_way' => $request->pricing_way,
+                'original_price' => $basePrice,
+                'original_total_price' => $originalTotal,
+                'discount_percentage' => $discountPercentage,
+                'discounted_price' => $discountedPrice,
+                'final_price' => $finalPrice,
+                'coupon_code' => $couponCode,
+                'number_of_branches' => $branchesCount,
+                'discount_details' => $couponDetails,
+                'status' => $request->payment_method === 'cash' ? 'active' : 'pending_payment'
+            ]);
+
+            // 10. إنشاء الفروع والموظفين
+            foreach ($branches as $branchData) {
+                // إنشاء الفرع
+                $branch = qtap_clients_brunchs::create([
+                    'client_id' => $client->id,
+                    'currency_id' => $branchData['currency_id'] ?? null,
+                    'discount_id' => $branchData['discount_id'] ?? null,
+                    'business_name' => $branchData['business_name'] ?? null,
+                    'business_country' => $branchData['business_country'] ?? null,
+                    'business_city' => $branchData['business_city'] ?? null,
+                    'latitude' => $branchData['latitude'] ?? null,
+                    'longitude' => $branchData['longitude'] ?? null,
+                    'business_format' => $branchData['business_format'] ?? null,
+                    'menu_design' => $branchData['menu_design'] ?? null,
+                    'default_mode' => $branchData['default_mode'] ?? 'light',
+                    'payment_time' => $branchData['payment_time'] ?? 'after',
+                    'call_waiter' => $branchData['call_waiter'] ?? false,
+                ]);
+
+                // إنشاء دور المدير
+                $role = role::create([
+                    'name' => 'admin',
+                    'menu' => 1,
+                    'users' => 1,
+                    'orders' => 1,
+                    'wallet' => 1,
+                    'setting' => 1,
+                    'support' => 1,
+                    'dashboard' => 1,
+                    'customers_log' => 1,
+                    'brunch_id' => $branch->id
+                ]);
+
+                // إنشاء موظف المدير
+                restaurant_user_staff::create([
+                    'brunch_id' => $branch->id,
+                    'email' => $client->email,
+                    'user_id' => $client->id,
+                    'password' => $client->password,
+                    'pin' => 111111,
+                    'name' => $client->name,
+                    'user_type' => $client->user_type,
+                    'role_id' => $role->id,
+                    'role' => $role->name,
+                ]);
+
+                // إنشاء جدول العمل
+                if (isset($branchData['work_schedules'])) {
+                    foreach ($branchData['work_schedules'] as $day => $times) {
+                        workschedule::create([
+                            'brunch_id' => $branch->id,
+                            'day' => $day,
+                            'opening_time' => $times['open'] ?? null,
+                            'closing_time' => $times['close'] ?? null,
+                            'is_open' => $times['is_open'] ?? true
+                        ]);
+                    }
+                }
+
+                // إنشاء طرق التقديم
+                if (isset($branchData['serving_ways'])) {
+                    foreach ($branchData['serving_ways'] as $way) {
+                        serving_ways::create([
+                            'brunch_id' => $branch->id,
+                            'name' => $way,
+                            'tables_number' => $way === 'dine_in' ? ($branchData['tables_number'] ?? 10) : null
+                        ]);
+                    }
+                }
+
+                // إنشاء وسائل الدفع
+                if (isset($branchData['payment_services'])) {
+                    foreach ($branchData['payment_services'] as $service) {
+                        payment_services::create([
+                            'brunch_id' => $branch->id,
+                            'name' => $service,
+                            'is_active' => true
+                        ]);
+                    }
+                }
+
+                // إنشاء معلومات الاتصال
+                if (isset($branchData['contact_info'])) {
+                    contact_info::create([
+                        'brunch_id' => $branch->id,
+                        'business_phone' => implode(',', $branchData['contact_info']['phones'] ?? []),
+                        'business_email' => implode(',', $branchData['contact_info']['emails'] ?? []),
+                        'website' => $branchData['contact_info']['website'] ?? null,
+                        'facebook' => $branchData['contact_info']['facebook'] ?? null,
+                        'twitter' => $branchData['contact_info']['twitter'] ?? null,
+                        'instagram' => $branchData['contact_info']['instagram'] ?? null,
+                        'address' => $branchData['contact_info']['address'] ?? null
+                    ]);
+                }
+            }
+
+            // 11. معالجة الدفع
+            if ($request->payment_method === 'cash' || $finalPrice <= 0) {
+                DB::commit();
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Client registered successfully. Payment will be completed in cash.',
+                    'client' => $client,
+                    'pricing_details' => [
+                        'base_price' => $basePrice,
+                        'total_before_discount' => $originalTotal,
+                        'discount_percentage' => $discountPercentage,
+                        'discount_amount' => $discountAmount,
+                        'price_after_discount' => $discountedPrice,
+                        'final_price' => $finalPrice,
+                        'coupon_code' => $couponCode,
+                        'branches_count' => $branchesCount,
+                        'pricing_plan' => $pricing->name,
+                        'pricing_way' => $request->pricing_way,
+                        'payment_method' => $request->payment_method,
+                        'discount_details' => $couponDetails
+                    ]
+                ], 201);
+            }
+
+            // معالجة الدفع الإلكتروني
+            $paymentController = new PaymentController();
+            $orderData = [
+                'amount' => $finalPrice,
+                'currency' => 'EGP',
+                'items' => [
+                    [
+                        'name' => 'Qtap Subscription - ' . $request->pricing_way,
+                        'description' => $pricing->name,
+                        'amount' => $finalPrice,
+                        'quantity' => 1
+                    ]
+                ],
+                'client_reference' => 'client_' . $client->id . '_pricing_' . $clientPricing->id
+            ];
+
+            $customerData = [
+                'first_name' => $client->name,
+                'last_name' => $client->name,
+                'email' => $client->email,
+                'phone' => $client->mobile,
+                'client_id' => $client->id
+            ];
+
+            $paymentResponse = $paymentController->initiatePayment($orderData, $customerData);
+
+            if ($paymentResponse['status'] === 'success') {
+                DB::commit();
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Client registered successfully. Redirect to payment.',
+                    'payment_url' => $paymentResponse['url'],
+                    'client' => $client,
+                    'pricing_details' => [
+                        'base_price' => $basePrice,
+                        'total_before_discount' => $originalTotal,
+                        'discount_percentage' => $discountPercentage,
+                        'discount_amount' => $discountAmount,
+                        'price_after_discount' => $discountedPrice,
+                        'final_price' => $finalPrice,
+                        'coupon_code' => $couponCode,
+                        'branches_count' => $branchesCount,
+                        'pricing_plan' => $pricing->name,
+                        'pricing_way' => $request->pricing_way,
+                        'payment_method' => $request->payment_method,
+                        'discount_details' => $couponDetails
+                    ]
+                ], 201);
+            }
+
+            throw new \Exception('Payment processing failed: ' . ($paymentResponse['message'] ?? 'Unknown error'));
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 
 
 

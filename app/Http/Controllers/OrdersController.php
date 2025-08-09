@@ -422,8 +422,48 @@ public function store(Request $request)
 
 
 
+public function checkDiscountStatus(Request $request, $brunchId)
+{
+    // التحقق من صحة البيانات المدخلة
+    $validator = Validator::make($request->all(), [
+        'code' => 'required|string|max:50',
+    ], [
+        'code.required' => 'يجب إدخال كود الخصم',
+        'code.string' => 'كود الخصم يجب أن يكون نصاً',
+        'code.max' => 'كود الخصم يجب ألا يتجاوز 50 حرفاً',
+    ]);
+
+    // في حالة وجود أخطاء في التحقق
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'خطأ في التحقق من الصحة',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    // التحقق من أن brunchId صحيح
+    if (!is_numeric($brunchId)) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'معرّف الفرع غير صحيح'
+        ], 400);
+    }
+
+    // البحث عن كود الخصم
+    $discount = meals_discount::where('code', $request->code)
+                ->where('brunch_id', $brunchId)
+                ->where('status', 'active')
+                ->first();
 
 
+    // إرجاع النتيجة
+    return response()->json([
+        'status' => 'success',
+        'message' => $discount ? 'كود الخصم فعال' : 'كود الخصم غير فعال',
+        'discount' => $discount
+    ]);
+}
 
 
 

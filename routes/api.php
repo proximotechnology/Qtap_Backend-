@@ -42,6 +42,7 @@ use App\Http\Controllers\FaqQtapController;
 use App\Http\Controllers\ClientsTransactionsController;
 use App\Http\Controllers\GovernorateController;
 use App\Models\qtap_admins;
+use App\Http\Controllers\CoupPlanController;
 
 use App\Http\Middleware\CheckClient;
 
@@ -150,7 +151,13 @@ Route::middleware('auth:qtap_admins')->group(function () {
 
 
 
-
+    Route::prefix('coupons_plan')->group(function () {
+        Route::get('index/', [CoupPlanController::class, 'index']); // عرض الكل
+        Route::post('store/', [CoupPlanController::class, 'store']); // إنشاء جديد
+        Route::get('show/{id}', [CoupPlanController::class, 'show']); // عرض واحد
+        Route::put('update/{id}', [CoupPlanController::class, 'update']); // تعديل
+        Route::delete('destroy/{id}', [CoupPlanController::class, 'destroy']); // حذف
+    });
 
 
 
@@ -309,6 +316,11 @@ Route::post('customer_info', [CustomerInfoController::class, 'store']);
 
 //-------------orders--------
 Route::post('add_orders', [OrdersController::class, 'store'])->name('add_orders');
+
+
+##by_majd
+Route::post('checkDiscountStatus/{branch_id}', [OrdersController::class, 'checkDiscountStatus']);
+Route::post('checkPlanStatus', [CoupPlanController::class, 'checkDiscountStatus']);
 
 //-------------menu--------
 Route::get('menu/{id}', [QtapClientsController::class, 'menu'])->name('menu');
