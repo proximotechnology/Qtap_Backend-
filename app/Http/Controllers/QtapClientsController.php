@@ -24,6 +24,9 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
+use App\Mail\OTPMail;
+
+use Illuminate\Support\Facades\Mail;
 
 
 use Illuminate\Support\Facades\DB;
@@ -492,6 +495,12 @@ class QtapClientsController extends Controller
                 'user_type' => $validatedData['user_type'] ?? null,
                 'payment_method' => $request['payment_method'] ?? null,
             ]);
+                    // إنشاء OTP وإرساله
+            $otp = rand(100000, 999999);
+            $new_client->update(['otp' => $otp]);
+
+            // إرسال البريد الإلكتروني
+            Mail::to($new_client->email)->send(new OTPMail($otp, 'تفعيل حساب Qtap'));
 
             // Create client pricing record
             ClientPricing::create([
