@@ -13,7 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
+use App\Models\qtap_clients_brunchs;
 class ClientPricingController extends Controller
 {
     /**
@@ -375,120 +375,137 @@ public function activateSubscription($id)
             'request_id' => $changeRequest->id
         ]);
     }*/
-    public function requestSubscriptionChange(Request $request, $clinet_pricing_id)
-    {
-        $user = Auth::guard('restaurant_user_staff')->user();
+public function requestSubscriptionChange(Request $request, $clinet_pricing_id)
+{
+    $user = Auth::guard('restaurant_user_staff')->user();
 
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized - Please login first'
-            ], 401);
-        }
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized - Please login first'
+        ], 401);
+    }
 
-        $client = qtap_clients::where('email', $user->email)->first();
+    $client = qtap_clients::where('email', $user->email)->first();
 
-        if (!$client) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Client not found'
-            ], 404);
-        }
+    if (!$client) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Client not found'
+        ], 404);
+    }
 
-        $subscription = ClientPricing::with(['pricing','client'])
-                        ->where('id', $clinet_pricing_id)
-                        ->where('client_id', $client->id)
+    $subscription = ClientPricing::with(['pricing','client'])
+                    ->where('id', $clinet_pricing_id)
+                    ->where('client_id', $client->id)
+                    ->first();
+
+    if (!$subscription) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Subscription not found or does not belong to you'
+        ], 404);
+    }
+
+    $existingRequest = SubscriptionChangeRequest::where('client_pricing_id', $clinet_pricing_id)
+                        ->where('status', 'pending')
                         ->first();
 
-        if (!$subscription) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Subscription not found or does not belong to you'
-            ], 404);
+    if ($existingRequest) {
+        return response()->json([
+            'success' => false,
+            'message' => 'You already have a pending request for this subscription.',
+            'existing_request_id' => $existingRequest->id
+        ], 400);
+    }
+
+    $request->validate([
+        'action_type' => 'required|in:renew,upgrade',
+        'new_pricing_id' => 'required_if:action_type,upgrade|exists:pricings,id',
+        'pricing_way' => 'required|in:monthly_price,yearly_price',
+        'payment_method' => 'required|in:cash,wallet',
+        'coupon_code' => 'sometimes|string|exists:coup_plans,code'
+    ]);
+
+    // حساب السعر مع الخصم إذا وجد
+    $pricing = $request->action_type == 'upgrade' 
+        ? pricing::find($request->new_pricing_id)
+        : $subscription->pricing;
+
+    if (!$pricing) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Pricing plan not found'
+        ], 404);
+    }
+
+    // حساب عدد الفروع الحالية للعميل
+    $number_of_branches = qtap_clients_brunchs::where('client_id', $client->id)->count();
+    $number_of_branches = max(1, $number_of_branches); // التأكد من أن العدد لا يقل عن 1
+
+    // حساب السعر الأصلي مع مراعاة عدد الفروع
+    $service_cost = $pricing->{$request->pricing_way};
+    $original_total_cost = match (true) {
+        $number_of_branches == 2 => floatval($service_cost * 1.5),
+        $number_of_branches == 3 => floatval($service_cost * 2),
+        $number_of_branches > 3 => intdiv($number_of_branches, 2) * floatval($service_cost * 1.5) + ($number_of_branches % 2 ? floatval($service_cost * 2) : 0),
+        default => $service_cost
+    };
+
+    $discountPercentage = 0;
+    $discountAmount = 0;
+    $finalPrice = $original_total_cost;
+
+    if ($request->filled('coupon_code')) {
+        $coupon = coup_plan::where('code', $request->coupon_code)
+                        ->where('status', 'active')
+                        ->first();
+
+        if ($coupon) {
+            $discountPercentage = $coupon->discount;
+            $discountAmount = $original_total_cost * ($discountPercentage / 100);
+            $finalPrice = $original_total_cost - $discountAmount;
         }
+    }
 
-        $existingRequest = SubscriptionChangeRequest::where('client_pricing_id', $clinet_pricing_id)
-                            ->where('status', 'pending')
-                            ->first();
+    $finalPrice = ceil(max(0, $finalPrice)); // التأكد من أن السعر النهائي ليس سالبًا
 
-        if ($existingRequest) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You already have a pending request for this subscription.',
-                'existing_request_id' => $existingRequest->id
-            ], 400);
-        }
+    $changeRequest = SubscriptionChangeRequest::create([
+        'client_pricing_id' => $clinet_pricing_id,
+        'action_type' => $request->action_type,
+        'new_pricing_id' => $request->new_pricing_id ?? $subscription->pricing_id,
+        'pricing_way' => $request->pricing_way,
+        'payment_methodes' => $request->payment_method,
+        'coupon_code' => $request->coupon_code ?? null,
+        'original_price' => $service_cost,
+        'original_total_price' => $original_total_cost,
+        'discount_percentage' => $discountPercentage,
+        'discount_amount' => $discountAmount,
+        'final_price' => $finalPrice,
+        'number_of_branches' => $number_of_branches,
+        'status' => 'pending',
+        'requested_at' => now()
+    ]);
 
-        $request->validate([
-            'action_type' => 'required|in:renew,upgrade',
-            'new_pricing_id' => 'required_if:action_type,upgrade|exists:pricings,id',
-            'pricing_way' => 'required|in:monthly_price,yearly_price',
-            'payment_method' => 'required|in:cash,wallet',
-            'coupon_code' => 'sometimes|string|exists:coup_plans,code'
-        ]);
-
-        // حساب السعر مع الخصم إذا وجد
-        $pricing = $request->action_type == 'upgrade' 
-            ? pricing::find($request->new_pricing_id)
-            : $subscription->pricing;
-
-        // التأكد من وجود pricing object
-        if (!$pricing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pricing plan not found'
-            ], 404);
-        }
-
-        // حساب السعر الأصلي بشكل صحيح لكلا الحالتين
-        $originalPrice = $request->pricing_way == 'monthly_price'
-            ? (float)$pricing->monthly_price
-            : (float)$pricing->yearly_price;
-
-        $discountPercentage = 0;
-        $discountAmount = 0;
-        $finalPrice = $originalPrice;
-
-        if ($request->filled('coupon_code')) {
-            $coupon = coup_plan::where('code', $request->coupon_code)
-                            ->where('status', 'active')
-                            ->first();
-
-            if ($coupon) {
-                $discountPercentage = $coupon->discount;
-                $discountAmount = $originalPrice * ($discountPercentage / 100);
-                $finalPrice = $originalPrice - $discountAmount;
-            }
-        }
-
-        $changeRequest = SubscriptionChangeRequest::create([
-            'client_pricing_id' => $clinet_pricing_id,
-            'action_type' => $request->action_type,
-            'new_pricing_id' => $request->new_pricing_id ?? $subscription->pricing_id,
-            'pricing_way' => $request->pricing_way,
-            'payment_methodes' => $request->payment_method,
-            'coupon_code' => $request->coupon_code ?? null,
-            'original_price' => $originalPrice, // سيتم تخزينه في جميع الحالات
+    return response()->json([
+        'success' => true,
+        'message' => 'Change request submitted. Waiting for admin approval.',
+        'request_id' => $changeRequest->id,
+        'price_details' => [
+            'original_price' => $service_cost,
+            'original_total' => $original_total_cost,
             'discount_percentage' => $discountPercentage,
             'discount_amount' => $discountAmount,
             'final_price' => $finalPrice,
-            'status' => 'pending',
-            'requested_at' => now()
-        ]);
+            'coupon_code' => $request->coupon_code ?? null,
+            'number_of_branches' => $number_of_branches
+        ]
+    ]);
+}
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Change request submitted. Waiting for admin approval.',
-            'request_id' => $changeRequest->id,
-            'price_details' => [
-                'original_price' => $originalPrice,
-                'discount_percentage' => $discountPercentage,
-                'discount_amount' => $discountAmount,
-                'final_price' => $finalPrice,
-                'coupon_code' => $request->coupon_code ?? null
-            ]
-        ]);
-    }
+
+
+
     public function getPendingChangeRequests(Request $request)
     {
         try {
