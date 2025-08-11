@@ -36,7 +36,12 @@ return new class extends Migration
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             // تاريخ الطلب
             $table->timestamp('requested_at')->useCurrent();
-
+            $table->string('coupon_code')->nullable()->comment('كود الخصم المستخدم');
+            $table->decimal('original_price', 10, 2)->nullable()->comment('السعر الأصلي قبل الخصم');
+            $table->decimal('discount_percentage', 5, 2)->default(0)->comment('نسبة الخصم');
+            $table->decimal('discount_amount', 10, 2)->default(0)->comment('قيمة الخصم المالية');
+            $table->decimal('final_price', 10, 2)->nullable()->comment('السعر النهائي بعد الخصم');
+            
             $table->timestamps();
 
             // فهارس لتحسين الأداء

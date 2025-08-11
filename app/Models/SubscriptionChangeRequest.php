@@ -17,6 +17,11 @@ class SubscriptionChangeRequest extends Model
         'payment_methodes',
         'pricing_way',
         'status',
+        'original_price',
+        'coupon_code', // أضف هذا الحقل
+        'discount_percentage', // أضف هذا الحقل
+        'discount_amount', // أضف هذا الحقل
+        'final_price' // أضف هذا الحقل
 
     ];
 

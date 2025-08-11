@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ClientPricing;
 use App\Models\qtap_clients;
 use App\Models\pricing;
+use App\Models\coup_plan;
+
 use App\Models\SubscriptionChangeRequest;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -296,7 +298,7 @@ public function activateSubscription($id)
 
 
 
-    public function requestSubscriptionChange(Request $request, $clinet_pricing_id)
+   /* public function requestSubscriptionChange(Request $request, $clinet_pricing_id)
     {
         $user = Auth::guard('restaurant_user_staff')->user();
 
@@ -372,9 +374,121 @@ public function activateSubscription($id)
             'message' => 'Change request submitted. Waiting for admin approval.',
             'request_id' => $changeRequest->id
         ]);
+    }*/
+    public function requestSubscriptionChange(Request $request, $clinet_pricing_id)
+    {
+        $user = Auth::guard('restaurant_user_staff')->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized - Please login first'
+            ], 401);
+        }
+
+        $client = qtap_clients::where('email', $user->email)->first();
+
+        if (!$client) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Client not found'
+            ], 404);
+        }
+
+        $subscription = ClientPricing::with(['pricing','client'])
+                        ->where('id', $clinet_pricing_id)
+                        ->where('client_id', $client->id)
+                        ->first();
+
+        if (!$subscription) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Subscription not found or does not belong to you'
+            ], 404);
+        }
+
+        $existingRequest = SubscriptionChangeRequest::where('client_pricing_id', $clinet_pricing_id)
+                            ->where('status', 'pending')
+                            ->first();
+
+        if ($existingRequest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You already have a pending request for this subscription.',
+                'existing_request_id' => $existingRequest->id
+            ], 400);
+        }
+
+        $request->validate([
+            'action_type' => 'required|in:renew,upgrade',
+            'new_pricing_id' => 'required_if:action_type,upgrade|exists:pricings,id',
+            'pricing_way' => 'required|in:monthly_price,yearly_price',
+            'payment_method' => 'required|in:cash,wallet',
+            'coupon_code' => 'sometimes|string|exists:coup_plans,code'
+        ]);
+
+        // حساب السعر مع الخصم إذا وجد
+        $pricing = $request->action_type == 'upgrade' 
+            ? pricing::find($request->new_pricing_id)
+            : $subscription->pricing;
+
+        // التأكد من وجود pricing object
+        if (!$pricing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pricing plan not found'
+            ], 404);
+        }
+
+        // حساب السعر الأصلي بشكل صحيح لكلا الحالتين
+        $originalPrice = $request->pricing_way == 'monthly_price'
+            ? (float)$pricing->monthly_price
+            : (float)$pricing->yearly_price;
+
+        $discountPercentage = 0;
+        $discountAmount = 0;
+        $finalPrice = $originalPrice;
+
+        if ($request->filled('coupon_code')) {
+            $coupon = coup_plan::where('code', $request->coupon_code)
+                            ->where('status', 'active')
+                            ->first();
+
+            if ($coupon) {
+                $discountPercentage = $coupon->discount;
+                $discountAmount = $originalPrice * ($discountPercentage / 100);
+                $finalPrice = $originalPrice - $discountAmount;
+            }
+        }
+
+        $changeRequest = SubscriptionChangeRequest::create([
+            'client_pricing_id' => $clinet_pricing_id,
+            'action_type' => $request->action_type,
+            'new_pricing_id' => $request->new_pricing_id ?? $subscription->pricing_id,
+            'pricing_way' => $request->pricing_way,
+            'payment_methodes' => $request->payment_method,
+            'coupon_code' => $request->coupon_code ?? null,
+            'original_price' => $originalPrice, // سيتم تخزينه في جميع الحالات
+            'discount_percentage' => $discountPercentage,
+            'discount_amount' => $discountAmount,
+            'final_price' => $finalPrice,
+            'status' => 'pending',
+            'requested_at' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Change request submitted. Waiting for admin approval.',
+            'request_id' => $changeRequest->id,
+            'price_details' => [
+                'original_price' => $originalPrice,
+                'discount_percentage' => $discountPercentage,
+                'discount_amount' => $discountAmount,
+                'final_price' => $finalPrice,
+                'coupon_code' => $request->coupon_code ?? null
+            ]
+        ]);
     }
-
-
     public function getPendingChangeRequests(Request $request)
     {
         try {
@@ -570,16 +684,187 @@ public function activateSubscription($id)
 
 
 
-public function updateRequestStatus(Request $request, $id)
+  /*  public function updateRequestStatus(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            // التحقق من صحة البيانات الأساسية
+            $validated = $request->validate([
+                'status' => 'required|in:approved,rejected',
+            ]);
+
+            // جلب طلب التغيير مع العلاقات مع معالجة حالة عدم الوجود
+            $changeRequest = SubscriptionChangeRequest::with([
+                'ClientPricing.pricing',
+                'Pricing',
+                'ClientPricing.client'
+            ])->find($id);
+
+            if (!$changeRequest) {
+                throw new \Exception('Subscription change request not found', 404);
+            }
+
+            // التحقق من أن الطلب معلق
+            if ($changeRequest->status != 'pending') {
+                throw new \Exception('This request has already been processed', 400);
+            }
+
+            // تحديث حالة الطلب
+            $changeRequest->update(['status' => $validated['status']]);
+
+            // إذا تم الرفض
+            if ($validated['status'] == 'rejected') {
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Request has been rejected successfully',
+                    'data' => $changeRequest
+                ]);
+            }
+
+            // معالجة حالة الموافقة
+            $currentSub = $changeRequest->ClientPricing;
+            $client = $currentSub->client;
+            $currentPricing = $currentSub->pricing;
+            $newPricing = $changeRequest->Pricing;
+
+            // التحقق من وجود البيانات الأساسية
+            if (!$currentSub || !$client) {
+                throw new \Exception('Client subscription data is invalid', 400);
+            }
+
+            // التحقق من أن الاشتراك المستقبل غير inactive
+            if ($changeRequest->action_type == 'upgrade' && $newPricing->is_active != 'active') {
+                throw new \Exception('Cannot upgrade to an inactive pricing plan', 400);
+            }
+
+            // معالجة الدفع أولاً
+            if ($changeRequest->payment_methodes == 'wallet') {
+                if (!$newPricing) {
+                    throw new \Exception('Pricing information is missing for wallet payment', 400);
+                }
+
+                $amount = $changeRequest->pricing_way == 'monthly_price'
+                    ? $newPricing->monthly_price
+                    : $newPricing->yearly_price;
+
+                if ($client->wallet_balance < $amount) {
+                    throw new \Exception('Your wallet balance is insufficient for this operation', 400);
+                }
+
+                // خصم المبلغ من المحفظة
+                $client->decrement('wallet_balance', $amount);
+            }
+
+            // معالجة التجديد
+            if ($changeRequest->action_type == 'renew') {
+                if (!$currentPricing || $currentPricing->is_active != 'active') {
+                    throw new \Exception('Current pricing plan is no longer available', 400);
+                }
+
+                $isExpired = $currentSub->status == 'expired';
+                $currentOrdersLimit = $currentPricing->orders_limit;
+
+                if ($isExpired) {
+                    $currentSub->update([
+                        'ramin_order' => $currentOrdersLimit,
+                        'expired_at' => $changeRequest->pricing_way == 'monthly_price'
+                            ? now()->addMonth()
+                            : now()->addYear(),
+                        'status' => 'active',
+                        'payment_methodes' => $changeRequest->payment_methodes,
+                        'pricing_way' => $changeRequest->pricing_way
+                    ]);
+                } else {
+                    $remainingDays = max(0, Carbon::now()->diffInDays($currentSub->expired_at, false));
+                    $totalPeriod = $currentSub->pricing_way == 'monthly_price' ? 30 : 365;
+
+                    $currentSub->update([
+                        'ramin_order' => $currentSub->ramin_order + $currentOrdersLimit,
+                        'expired_at' => $changeRequest->pricing_way == 'monthly_price'
+                            ? now()->addMonth()->addDays($remainingDays)
+                            : now()->addYear()->addDays($remainingDays),
+                        'payment_methodes' => $changeRequest->payment_methodes,
+                        'pricing_way' => $changeRequest->pricing_way
+                    ]);
+                }
+            }
+            // معالجة الترقية
+            elseif ($changeRequest->action_type == 'upgrade') {
+                if (!$newPricing || $newPricing->is_active == 'inactive') {
+                    throw new \Exception('The new pricing plan is no longer available', 400);
+                }
+
+                $remainingValue = $this->calculateRemainingValue($currentSub);
+                $newOrdersLimit = $newPricing->orders_limit;
+
+                $newSubscription = ClientPricing::create([
+                    'client_id' => $currentSub->client_id,
+                    'pricing_id' => $newPricing->id,
+                    'status' => 'active',
+                    'ramin_order' => $newOrdersLimit + $remainingValue,
+                    'expired_at' => $changeRequest->pricing_way == 'monthly_price'
+                        ? now()->addMonth()
+                        : now()->addYear(),
+                    'payment_methodes' => $changeRequest->payment_methodes,
+                    'pricing_way' => $changeRequest->pricing_way,
+                    'previous_subscription_id' => $currentSub->id
+                ]);
+
+                $currentSub->update([
+                    'status' => 'inactive',
+                    'upgraded_to' => $newSubscription->id
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Request processed successfully',
+                'data' => $changeRequest->fresh(['ClientPricing', 'Pricing'])
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            $statusCode = 500;
+            $errorMessage = 'An unexpected error occurred';
+
+            if ($e->getCode() >= 400 && $e->getCode() < 500) {
+                $statusCode = $e->getCode();
+                $errorMessage = $e->getMessage();
+            }
+
+            Log::error('Subscription change error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request_id' => $id ?? null,
+                'user_id' => auth()->id() ?? null
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $errorMessage,
+                'error_details' => config('app.debug') ? $e->getMessage() : null
+            ], $statusCode);
+        }
+    }*/
+        public function updateRequestStatus(Request $request, $id)
 {
     DB::beginTransaction();
     try {
-        // التحقق من صحة البيانات الأساسية
         $validated = $request->validate([
             'status' => 'required|in:approved,rejected',
         ]);
 
-        // جلب طلب التغيير مع العلاقات مع معالجة حالة عدم الوجود
         $changeRequest = SubscriptionChangeRequest::with([
             'ClientPricing.pricing',
             'Pricing',
@@ -590,15 +875,12 @@ public function updateRequestStatus(Request $request, $id)
             throw new \Exception('Subscription change request not found', 404);
         }
 
-        // التحقق من أن الطلب معلق
         if ($changeRequest->status != 'pending') {
             throw new \Exception('This request has already been processed', 400);
         }
 
-        // تحديث حالة الطلب
         $changeRequest->update(['status' => $validated['status']]);
 
-        // إذا تم الرفض
         if ($validated['status'] == 'rejected') {
             DB::commit();
             return response()->json([
@@ -608,41 +890,30 @@ public function updateRequestStatus(Request $request, $id)
             ]);
         }
 
-        // معالجة حالة الموافقة
         $currentSub = $changeRequest->ClientPricing;
         $client = $currentSub->client;
         $currentPricing = $currentSub->pricing;
         $newPricing = $changeRequest->Pricing;
 
-        // التحقق من وجود البيانات الأساسية
         if (!$currentSub || !$client) {
             throw new \Exception('Client subscription data is invalid', 400);
         }
 
-        // التحقق من أن الاشتراك المستقبل غير inactive
         if ($changeRequest->action_type == 'upgrade' && $newPricing->is_active != 'active') {
             throw new \Exception('Cannot upgrade to an inactive pricing plan', 400);
         }
 
-        // معالجة الدفع أولاً
+        // استخدام السعر النهائي بعد الخصم من الطلب
+        $amount = $changeRequest->final_price;
+
         if ($changeRequest->payment_methodes == 'wallet') {
-            if (!$newPricing) {
-                throw new \Exception('Pricing information is missing for wallet payment', 400);
-            }
-
-            $amount = $changeRequest->pricing_way == 'monthly_price'
-                ? $newPricing->monthly_price
-                : $newPricing->yearly_price;
-
             if ($client->wallet_balance < $amount) {
                 throw new \Exception('Your wallet balance is insufficient for this operation', 400);
             }
 
-            // خصم المبلغ من المحفظة
             $client->decrement('wallet_balance', $amount);
         }
 
-        // معالجة التجديد
         if ($changeRequest->action_type == 'renew') {
             if (!$currentPricing || $currentPricing->is_active != 'active') {
                 throw new \Exception('Current pricing plan is no longer available', 400);
@@ -651,31 +922,30 @@ public function updateRequestStatus(Request $request, $id)
             $isExpired = $currentSub->status == 'expired';
             $currentOrdersLimit = $currentPricing->orders_limit;
 
+            $updateData = [
+                'payment_methodes' => $changeRequest->payment_methodes,
+                'pricing_way' => $changeRequest->pricing_way,
+                'coupon_code' => $changeRequest->coupon_code,
+                'discount_percentage' => $changeRequest->discount_percentage,
+                'final_price' => $changeRequest->final_price
+            ];
+
             if ($isExpired) {
-                $currentSub->update([
-                    'ramin_order' => $currentOrdersLimit,
-                    'expired_at' => $changeRequest->pricing_way == 'monthly_price'
-                        ? now()->addMonth()
-                        : now()->addYear(),
-                    'status' => 'active',
-                    'payment_methodes' => $changeRequest->payment_methodes,
-                    'pricing_way' => $changeRequest->pricing_way
-                ]);
+                $updateData['ramin_order'] = $currentOrdersLimit;
+                $updateData['expired_at'] = $changeRequest->pricing_way == 'monthly_price'
+                    ? now()->addMonth()
+                    : now()->addYear();
+                $updateData['status'] = 'active';
             } else {
                 $remainingDays = max(0, Carbon::now()->diffInDays($currentSub->expired_at, false));
-                $totalPeriod = $currentSub->pricing_way == 'monthly_price' ? 30 : 365;
-
-                $currentSub->update([
-                    'ramin_order' => $currentSub->ramin_order + $currentOrdersLimit,
-                    'expired_at' => $changeRequest->pricing_way == 'monthly_price'
-                        ? now()->addMonth()->addDays($remainingDays)
-                        : now()->addYear()->addDays($remainingDays),
-                    'payment_methodes' => $changeRequest->payment_methodes,
-                    'pricing_way' => $changeRequest->pricing_way
-                ]);
+                $updateData['ramin_order'] = $currentSub->ramin_order + $currentOrdersLimit;
+                $updateData['expired_at'] = $changeRequest->pricing_way == 'monthly_price'
+                    ? now()->addMonth()->addDays($remainingDays)
+                    : now()->addYear()->addDays($remainingDays);
             }
+
+            $currentSub->update($updateData);
         }
-        // معالجة الترقية
         elseif ($changeRequest->action_type == 'upgrade') {
             if (!$newPricing || $newPricing->is_active == 'inactive') {
                 throw new \Exception('The new pricing plan is no longer available', 400);
@@ -684,6 +954,7 @@ public function updateRequestStatus(Request $request, $id)
             $remainingValue = $this->calculateRemainingValue($currentSub);
             $newOrdersLimit = $newPricing->orders_limit;
 
+        // في جزء الترقية (upgrade)
             $newSubscription = ClientPricing::create([
                 'client_id' => $currentSub->client_id,
                 'pricing_id' => $newPricing->id,
@@ -694,53 +965,43 @@ public function updateRequestStatus(Request $request, $id)
                     : now()->addYear(),
                 'payment_methodes' => $changeRequest->payment_methodes,
                 'pricing_way' => $changeRequest->pricing_way,
-                'previous_subscription_id' => $currentSub->id
+                'previous_subscription_id' => $currentSub->id,
+                'coupon_code' => $changeRequest->coupon_code,
+                'discount_percentage' => $changeRequest->discount_percentage,
+                'final_price' => $changeRequest->final_price,
+                'original_price' => $changeRequest->original_price,
+                'original_total_price' => $changeRequest->original_price, // أو حسب حساباتك
+                'discounted_price' => $changeRequest->final_price, // أضف هذا السطر
+                'number_of_branches' => $currentSub->number_of_branches ?? 1
             ]);
-
-            $currentSub->update([
-                'status' => 'inactive',
-                'upgraded_to' => $newSubscription->id
-            ]);
-        }
+        $currentSub->update([
+                    'status' => 'inactive',
+                    'upgraded_to' => $newSubscription->id
+                ]);
+            }
 
         DB::commit();
 
         return response()->json([
             'success' => true,
             'message' => 'Request processed successfully',
-            'data' => $changeRequest->fresh(['ClientPricing', 'Pricing'])
+            'data' => $changeRequest->fresh(['ClientPricing', 'Pricing']),
+            'price_details' => [
+                'original_price' => $changeRequest->original_price,
+                'discount_percentage' => $changeRequest->discount_percentage,
+                'discount_amount' => $changeRequest->discount_amount,
+                'final_price' => $changeRequest->final_price,
+                'coupon_code' => $changeRequest->coupon_code
+            ]
         ]);
-
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'Validation error',
-            'errors' => $e->errors()
-        ], 422);
 
     } catch (\Exception $e) {
         DB::rollBack();
-
-        $statusCode = 500;
-        $errorMessage = 'An unexpected error occurred';
-
-        if ($e->getCode() >= 400 && $e->getCode() < 500) {
-            $statusCode = $e->getCode();
-            $errorMessage = $e->getMessage();
-        }
-
-        Log::error('Subscription change error: ' . $e->getMessage(), [
-            'exception' => $e,
-            'request_id' => $id ?? null,
-            'user_id' => auth()->id() ?? null
-        ]);
-
         return response()->json([
             'success' => false,
-            'message' => $errorMessage,
+            'message' => $e->getMessage(),
             'error_details' => config('app.debug') ? $e->getMessage() : null
-        ], $statusCode);
+        ], $e->getCode() >= 400 && $e->getCode() < 500 ? $e->getCode() : 500);
     }
 }
 
