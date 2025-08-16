@@ -38,8 +38,59 @@ class AuthController extends Controller
      */
 
 
+    public function resendOTP(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'user_type' => 'required|in:qtap_clients,qtap_affiliate,qtap_admins'
+        ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'بيانات غير صالحة: ' . $validator->errors()->first(),
+                'status' => false
+            ], 422);
+        }
 
+        // تحديد نموذج المستخدم بناءً على النوع
+        $userModel = match($request->user_type) {
+            'qtap_admins' => qtap_admins::class,
+            'qtap_affiliate' => qtap_affiliate::class,
+            'qtap_clients' => qtap_clients::class,
+        };
+
+        // البحث عن المستخدم
+        $user = $userModel::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'المستخدم غير موجود',
+                'status' => false
+            ], 404);
+        }
+
+        try {
+            // إنشاء OTP جديد
+            $newOTP = rand(100000, 999999);
+
+            // تحديث OTP في قاعدة البيانات
+            $user->update(['otp' => $newOTP]);
+
+            // إرسال البريد الإلكتروني
+            Mail::to($user->email)->send(new OTPMail($newOTP, 'كود التحقق الجديد'));
+
+            return response()->json([
+                'message' => 'تم إعادة إرسال كود التحقق بنجاح',
+                'status' => true
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'حدث خطأ أثناء إعادة إرسال الكود: ' . $e->getMessage(),
+                'status' => false
+            ], 500);
+        }
+    }
     public function register(Request $request)
     {
 
